@@ -8,7 +8,6 @@ BYBIT_API_BASE = 'https://api.bybit.com'
 BYBIT_PUBLIC_ENDPOINT = '/v5/market'
 
 # ======================== DATABASE ========================
-# ======================== DATABASE ========================
 DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_PORT = int(os.getenv('DB_PORT', '5432'))
 DB_NAME = os.getenv('DB_NAME', 'pulse_traders')
@@ -138,3 +137,5 @@ GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '')
 
 MAX_LOGIN_ATTEMPTS = int(os.getenv('MAX_LOGIN_ATTEMPTS', 5))
 LOGIN_ATTEMPT_TIMEOUT = int(os.getenv('LOGIN_ATTEMPT_TIMEOUT', 300))
+
+DEFAULT_SUBSCRIPTION_TIER = 'starter'

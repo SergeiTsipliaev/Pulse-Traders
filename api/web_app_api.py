@@ -6,25 +6,26 @@ import json
 import time
 from datetime import datetime
 from typing import Optional
-from pathlib import Path
 from contextlib import asynccontextmanager
 import numpy as np
 from fastapi import FastAPI, HTTPException, Query, Request, Header
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-
 from api.auth_routes import verify_jwt_token
 from config import POPULAR_CRYPTOS, CACHE_TTL, DATABASE_URL, ADMIN_IDS
 from services import bybit_service
 from models.database import Database
-
 from api import auth_routes  # ✨ НОВОЕ
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-
-# ✨ НОВЫЕ ИМПОРТЫ ДЛЯ ADMIN И USER API
 from api import admin_routes, user_routes
+from json import JSONEncoder
+
+# class DateTimeEncoder(JSONEncoder):
+#     def default(self, obj):
+#         if isinstance(obj, datetime):
+#             return obj.isoformat()
+#         return super().default(obj)
 
 
 # Глобальная переменная БД
@@ -449,13 +450,6 @@ async def get_all_cryptocurrencies():
         cached_result = await get_cache(cache_key)
         if cached_result:
             return JSONResponse(cached_result)
-
-        if db and db.is_connected:
-            cryptos = await db.get_all_cryptocurrencies()
-            if cryptos:
-                result = {'success': True, 'data': cryptos, 'total': len(cryptos), 'source': 'database'}
-                await set_cache(cache_key, result)
-                return JSONResponse(result)
 
         result = {'success': True, 'data': POPULAR_CRYPTOS, 'total': len(POPULAR_CRYPTOS), 'source': 'config'}
         await set_cache(cache_key, result)
