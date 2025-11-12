@@ -8,14 +8,15 @@ BYBIT_API_BASE = 'https://api.bybit.com'
 BYBIT_PUBLIC_ENDPOINT = '/v5/market'
 
 # ======================== DATABASE ========================
+# ======================== DATABASE ========================
 DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_PORT = int(os.getenv('DB_PORT', '3306'))
+DB_PORT = int(os.getenv('DB_PORT', '5432'))
 DB_NAME = os.getenv('DB_NAME', 'pulse_traders')
-DB_USER = os.getenv('DB_USER', 'root')
+DB_USER = os.getenv('DB_USER', 'postgres')
 DB_PASSWORD = os.getenv('DB_PASSWORD', '')
 
-# MySQL URL - для SQLAlchemy
-DATABASE_URL = f"mysql+aiomysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# PostgreSQL URL
+DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # ======================== TELEGRAM BOT ========================
 BOT_TOKEN = os.getenv('BOT_TOKEN', '')
