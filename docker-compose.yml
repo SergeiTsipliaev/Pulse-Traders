@@ -6,9 +6,9 @@ services:
     container_name: pulse-traders-db
     restart: always
     environment:
-      POSTGRES_USER: trader
-      POSTGRES_PASSWORD: change_me_secure_password
-      POSTGRES_DB: pulse_traders
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Sergiossa@1991
+      POSTGRES_DB: pupse_traders
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -34,8 +34,8 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: pulse_traders
-      DB_USER: trader
-      DB_PASSWORD: change_me_secure_password
+      DB_USER: postgres
+      DB_PASSWORD: Sergiossa@1991
       BOT_TOKEN: ${BOT_TOKEN}
       WEB_APP_URL: http://localhost:5000
       SECRET_KEY: ${SECRET_KEY}
