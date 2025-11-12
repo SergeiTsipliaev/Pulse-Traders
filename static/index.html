@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pulse Traders</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="shortcut icon" href="/static/favicon.svg">
+    <link rel="apple-touch-icon" href="/static/favicon.svg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #3390ec;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --secondary: #3d3a3f;
+            --text: #ffffff;
+            --text-secondary: #b0adb5;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #29262A;
+            color: #ffffff;
+            padding: 16px;
+            padding-bottom: 50px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex: 1;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .header-logo {
+            width: 64px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .header-logo svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 8px 16px rgba(6, 182, 212, 0.3));
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
+        }
+
+        .header-title {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #06b6d4, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .btn-header {
+            padding: 10px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: 1px solid var(--primary);
+            cursor: pointer;
+            background: rgba(51, 144, 236, 0.1);
+            color: var(--primary);
+        }
+
+        .btn-header:hover {
+            background: rgba(51, 144, 236, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .profile-menu {
+            position: relative;
+        }
+
+        .profile-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--secondary);
+            border: 1px solid var(--primary);
+            color: var(--text);
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .profile-btn:hover {
+            background: rgba(51, 144, 236, 0.1);
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 50px;
+            right: 0;
+            background: var(--secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            min-width: 220px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .user-info {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .user-email {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            word-break: break-all;
+        }
+
+        .dropdown-item {
+            display: block;
+            padding: 12px 16px;
+            color: var(--text);
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(51, 144, 236, 0.1);
+            padding-left: 20px;
+        }
+
+        .dropdown-item.danger:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .search-container {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            font-size: 16px;
+            background: var(--secondary);
+            color: var(--text);
+            box-shadow: 0 4px 12px rgba(51, 144, 236, 0.2);
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            box-shadow: 0 8px 24px rgba(51, 144, 236, 0.3);
+            border-color: #06b6d4;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            margin-top: 8px;
+        }
+
+        .search-results.show {
+            display: block;
+        }
+
+        .search-result-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .search-result-item:hover {
+            background: rgba(51, 144, 236, 0.1);
+            padding-left: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .crypto-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .crypto-card {
+            background: var(--secondary);
+            border-radius: 12px;
+            padding: 16px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .crypto-card:hover {
+            border-color: var(--primary);
+            background: rgba(51, 144, 236, 0.15);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(51, 144, 236, 0.25);
+        }
+
+        .crypto-emoji {
+            font-size: 32px;
+            margin-bottom: 6px;
+        }
+
+        .crypto-symbol {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid var(--secondary);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                flex-wrap: wrap;
+            }
+
+            .header-brand {
+                flex: 1 0 100%;
+                order: 1;
+                margin-bottom: 12px;
+            }
+
+            .header-right {
+                order: 2;
+            }
+
+            .header-title {
+                font-size: 24px;
+            }
+
+            .header-logo {
+                width: 48px;
+                height: 48px;
+            }
+
+            .crypto-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <div class="header-brand">
+                <div class="header-logo">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+                        <defs>
+                            <style>
+                                @keyframes beat1 {
+                                    0%, 100% { stroke-width: 2; opacity: 0.8; }
+                                    50% { stroke-width: 3; opacity: 0.4; }
+                                }
+                                @keyframes beat2 {
+                                    0%, 100% { stroke-width: 2; opacity: 0.5; }
+                                    50% { stroke-width: 3; opacity: 0.2; }
+                                }
+                                @keyframes glow {
+                                    0%, 100% { filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.6)); }
+                                    50% { filter: drop-shadow(0 0 12px rgba(6, 182, 212, 1)); }
+                                }
+                                @keyframes pulse-ring {
+                                    0% { r: 50; opacity: 0.8; }
+                                    100% { r: 90; opacity: 0; }
+                                }
+                            </style>
+                            <linearGradient id="pulse-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#06b6d4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#10b981;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="100" cy="100" r="50" fill="none" stroke="#06b6d4" stroke-width="1" opacity="0.2" style="animation: pulse-ring 1.5s ease-out infinite;"/>
+                        <circle cx="100" cy="100" r="50" fill="none" stroke="#06b6d4" stroke-width="1" opacity="0.15" style="animation: pulse-ring 1.5s ease-out infinite; animation-delay: 0.3s;"/>
+                        <path d="M 20 100 L 50 100 L 60 70 L 80 120 L 100 90 L 120 100 L 140 60 L 160 110 L 180 100" fill="none" stroke="url(#pulse-gradient)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="animation: glow 1.5s ease-in-out infinite;"/>
+                        <path d="M 20 100 L 50 100 L 60 70 L 80 120 L 100 90 L 120 100 L 140 60 L 160 110 L 180 100" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" opacity="0.3" style="animation: beat2 1.5s ease-in-out infinite;"/>
+                        <path d="M 20 100 L 50 100 L 60 70 L 80 120 L 100 90 L 120 100 L 140 60 L 160 110 L 180 100" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" opacity="0.2" style="animation: beat1 1.5s ease-in-out infinite; animation-delay: 0.2s;"/>
+                        <circle cx="60" cy="70" r="2.5" fill="#ef4444" opacity="0.8"/>
+                        <circle cx="80" cy="120" r="2.5" fill="#06b6d4" opacity="0.8"/>
+                        <circle cx="100" cy="90" r="2.5" fill="#10b981" opacity="0.8"/>
+                        <circle cx="140" cy="60" r="2.5" fill="#06b6d4" opacity="0.8"/>
+                        <circle cx="160" cy="110" r="3" fill="#10b981" opacity="1" style="filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.8));"/>
+                    </svg>
+                </div>
+                <h1 class="header-title">Pulse Traders</h1>
+            </div>
+            <div class="header-right" id="authButtons">
+                <a href="/auth.html" class="btn-header">🔐 Войти</a>
+            </div>
+        </div>
+
+        <div class="search-container">
+            <input type="text" class="search-input" id="searchInput" placeholder="Поиск криптовалюты..." autocomplete="off">
+            <div class="search-results" id="searchResults"></div>
+        </div>
+
+        <div class="section-title">Популярные</div>
+        <div class="crypto-grid" id="cryptoGrid"></div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loadingText">Загрузка...</div>
+        </div>
+    </div>
+
+    <script src="/static/app-home.js"></script>
+</body>
+</html>

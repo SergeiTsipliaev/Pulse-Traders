@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <style>
+      @keyframes beat1 {
+        0%, 100% { stroke-width: 3; opacity: 0.8; }
+        50% { stroke-width: 5; opacity: 0.4; }
+      }
+      @keyframes beat2 {
+        0%, 100% { stroke-width: 3; opacity: 0.5; }
+        50% { stroke-width: 5; opacity: 0.2; }
+      }
+      @keyframes glow {
+        0%, 100% { filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.4)); }
+        50% { filter: drop-shadow(0 0 12px rgba(6, 182, 212, 0.8)); }
+      }
+    </style>
+    <linearGradient id="pulse" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#06b6d4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Фон -->
+  <rect width="512" height="512" fill="#000000" rx="100"/>
+
+  <!-- Сетка фона (современный минимализм) -->
+  <g opacity="0.05" stroke="#ffffff">
+    <line x1="50" y1="256" x2="462" y2="256" stroke-width="1"/>
+    <line x1="256" y1="50" x2="256" y2="462" stroke-width="1"/>
+    <circle cx="256" cy="256" r="100" fill="none" stroke-width="0.5"/>
+    <circle cx="256" cy="256" r="150" fill="none" stroke-width="0.5"/>
+  </g>
+
+  <!-- Основная линия пульса -->
+  <path d="M 60 256 L 140 256 L 160 180 L 200 280 L 240 220 L 280 260 L 320 160 L 360 300 L 400 256 L 452 256"
+        fill="none" stroke="url(#pulse)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"
+        style="animation: glow 1.5s ease-in-out infinite;"/>
+
+  <!-- Слой 1 - внешний пульс (красный) -->
+  <path d="M 60 256 L 140 256 L 160 180 L 200 280 L 240 220 L 280 260 L 320 160 L 360 300 L 400 256 L 452 256"
+        fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round" opacity="0.3"
+        style="animation: beat2 1.5s ease-in-out infinite;"/>
+
+  <!-- Слой 2 - средний пульс -->
+  <path d="M 60 256 L 140 256 L 160 180 L 200 280 L 240 220 L 280 260 L 320 160 L 360 300 L 400 256 L 452 256"
+        fill="none" stroke="#06b6d4" stroke-width="3" stroke-linecap="round" opacity="0.2"
+        style="animation: beat1 1.5s ease-in-out infinite; animation-delay: 0.2s;"/>
+
+  <!-- Точки жизни -->
+  <circle cx="160" cy="180" r="4" fill="#ef4444" opacity="0.8"/>
+  <circle cx="200" cy="280" r="4" fill="#06b6d4" opacity="0.8"/>
+  <circle cx="240" cy="220" r="4" fill="#10b981" opacity="0.8"/>
+  <circle cx="280" cy="260" r="4" fill="#06b6d4" opacity="0.8"/>
+  <circle cx="320" cy="160" r="5" fill="#10b981" opacity="0.9" style="filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.8));"/>
+
+  <!-- Современная типография снизу -->
+  <text x="256" y="400" font-family="system-ui, -apple-system, sans-serif" font-size="43" font-weight="700"
+        text-anchor="middle" fill="#06b6d4" opacity="0.6">PULSE TRADERS</text>
+</svg>

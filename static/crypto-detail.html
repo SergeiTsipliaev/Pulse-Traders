@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Crypto Tracker - Анализ</title>
+    <!-- Фавикон -->
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="shortcut icon" href="/static/favicon.svg">
+    <link rel="apple-touch-icon" href="/static/favicon.svg">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            overflow-x: hidden;
+        }
+
+        :root {
+            --primary: #3390ec;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --secondary: #3d3a3f;
+            --text: #ffffff;
+            --text-secondary: #b0adb5;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #29262A;
+            color: #ffffff;
+            padding: 16px;
+            padding-bottom: 100px;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            width: 100%;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .back-btn {
+            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.2s;
+            box-shadow: 0 6px 16px rgba(51, 144, 236, 0.3),
+                        0 2px 4px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .back-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            border-radius: 8px 8px 0 0;
+        }
+
+        .back-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 3px 8px rgba(51, 144, 236, 0.2);
+        }
+
+        .back-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(51, 144, 236, 0.4),
+                        0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            word-break: break-word;
+        }
+
+        .price-card-header-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            flex-shrink: 0;
+            margin-right: 8px;
+        }
+
+        .crypto-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            margin-right: 12px;
+        }
+
+        .crypto-logo-img:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(51, 144, 236, 0.4);
+        }
+
+        .price-card-header-logo .crypto-emoji {
+            font-size: 28px;
+        }
+
+        .crypto-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .price-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+            padding: 24px;
+            color: white;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4),
+                        0 2px 8px rgba(0, 0, 0, 0.3);
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            width: 100%;
+        }
+
+        .price-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+            border-radius: 16px 16px 0 0;
+        }
+
+        .price-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            gap: 8px;
+        }
+
+        .price-crypto-name {
+            font-size: 18px;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .price-change {
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .price-main {
+            font-size: 42px;
+            font-weight: bold;
+            margin: 16px 0;
+            word-break: break-word;
+        }
+
+        .price-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .price-info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .price-info-label {
+            opacity: 0.8;
+            font-size: 11px;
+        }
+
+        .price-info-value {
+            font-weight: 600;
+            font-size: 13px;
+            word-break: break-word;
+        }
+
+        .chart-container {
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4),
+                        0 2px 8px rgba(0, 0, 0, 0.2),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .chart-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            border-radius: 16px 16px 0 0;
+        }
+
+        .chart-container.light {
+            background: #1a1a1a;
+        }
+
+        #priceChart {
+            filter: invert(0);
+            width: 100%;
+        }
+
+        .controls {
+            margin-bottom: 16px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .btn-control {
+            height: 36px;
+            padding: 0 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            border: none;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            white-space: nowrap;
+        }
+
+        .btn-control:active {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-timeframe {
+            background: var(--primary);
+            color: white;
+            position: relative;
+        }
+
+        .btn-chart-type {
+            background: var(--secondary);
+            color: var(--text);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-chart-type:active {
+            transform: scale(0.95);
+        }
+
+        #timeframeMenu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: var(--secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            z-index: 100;
+            min-width: 120px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4),
+                        0 2px 8px rgba(0,0,0,0.2);
+            margin-top: 4px;
+            backdrop-filter: blur(10px);
+            max-width: calc(100vw - 20px);
+        }
+
+        .timeframe-option {
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .timeframe-option:hover {
+            background: #4a474c;
+            color: var(--primary);
+        }
+
+        .timeframe-option:first-child {
+            border-radius: 8px 8px 0 0;
+        }
+
+        .timeframe-option:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+
+        #priceChart {
+            max-height: 250px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 12px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 8px 20px rgba(51, 144, 236, 0.4),
+                        0 2px 4px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        }
+
+        .btn-primary:active {
+            opacity: 0.8;
+            transform: scale(0.98);
+            box-shadow: 0 4px 10px rgba(51, 144, 236, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .prediction-section {
+            display: none;
+            margin-top: 30px;
+            width: 100%;
+        }
+
+        .prediction-section.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            margin-top: 20px;
+            color: var(--text);
+        }
+
+        .prediction-card {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 16px;
+            color: white;
+            box-shadow: 0 12px 32px rgba(16, 185, 129, 0.3),
+                        0 4px 8px rgba(0, 0, 0, 0.2),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            position: relative;
+            width: 100%;
+        }
+
+        .prediction-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            border-radius: 16px 16px 0 0;
+        }
+
+        .signal-emoji {
+            font-size: 60px;
+            margin-bottom: 12px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .signal-text {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .predicted-change {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            word-break: break-word;
+        }
+
+        .predicted-change.positive {
+            color: #d4fc79;
+        }
+
+        .predicted-change.negative {
+            color: #fca5a5;
+        }
+
+        .prediction-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 16px 0;
+            padding: 16px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            width: 100%;
+        }
+
+        .detail-item {
+            text-align: center;
+            min-width: 0;
+            word-break: break-word;
+        }
+
+        .detail-label {
+            font-size: 11px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-size: 18px;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .confidence-section {
+            margin: 16px 0;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            width: 100%;
+        }
+
+        .confidence-label {
+            font-size: 11px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #d4fc79, #fca5a5);
+            border-radius: 5px;
+            width: 0%;
+            transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .confidence-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .indicators-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 100%;
+        }
+
+        .indicators-grid:not(.show) {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .indicators-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .prediction-details {
+                grid-template-columns: 1fr;
+            }
+
+            .price-info {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .indicator-card {
+            background: var(--secondary);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3),
+                        0 1px 0 rgba(255, 255, 255, 0.05),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            position: relative;
+            transition: all 0.3s;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .indicator-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4),
+                        0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .indicator-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+            border-radius: 12px 12px 0 0;
+        }
+
+        .indicator-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .indicator-value {
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--primary);
+            word-break: break-word;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+            display: none;
+            width: 100%;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid var(--secondary);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- HEADER С КНОПКОЙ НАЗАД -->
+        <div class="header">
+            <div class="header-left">
+                <button class="back-btn" id="backBtn">←</button>
+                <div class="crypto-header">
+                    <img id="cryptoLogo" src="" alt="Logo" class="crypto-logo">
+                    <h1 id="cryptoName"></h1>
+                </div>
+            </div>
+        </div>
+
+        <div class="price-card" id="priceCard">
+            <div class="price-header">
+                <div class="price-crypto-name" id="cryptoSymbol"></div>
+                <div class="price-change" id="priceChange"></div>
+            </div>
+            <div class="price-main" id="currentPrice">$0.00</div>
+            <div class="price-info">
+                <div class="price-info-item">
+                    <div class="price-info-label">Макс (24ч)</div>
+                    <div class="price-info-value" id="high24h">$0.00</div>
+                </div>
+                <div class="price-info-item">
+                    <div class="price-info-label">Мин (24ч)</div>
+                    <div class="price-info-value" id="low24h">$0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="controls">
+                <div style="position: relative;">
+                    <button id="timeframeBtn" class="btn-control btn-timeframe">1h ▼</button>
+                    <div id="timeframeMenu">
+                        <div class="timeframe-option" data-interval="1">1m</div>
+                        <div class="timeframe-option" data-interval="5">5m</div>
+                        <div class="timeframe-option" data-interval="15">15m</div>
+                        <div class="timeframe-option" data-interval="30">30m</div>
+                        <div class="timeframe-option" data-interval="60">1h</div>
+                        <div class="timeframe-option" data-interval="240">4h</div>
+                        <div class="timeframe-option" data-interval="720">12h</div>
+                        <div class="timeframe-option" data-interval="D">1d</div>
+                        <div class="timeframe-option" data-interval="W">1w</div>
+                    </div>
+                </div>
+                <button id="chartTypeBtn" class="btn-control btn-chart-type">📈 Линия</button>
+            </div>
+            <canvas id="priceChart"></canvas>
+        </div>
+
+        <button class="btn btn-primary" id="predictBtn">🔮 Прогноз на 7 дней</button>
+
+        <div class="prediction-section" id="predictionSection">
+            <div class="section-title">🔮 Прогноз</div>
+            <div class="prediction-card">
+                <div class="signal-emoji" id="signalEmoji"></div>
+                <div class="signal-text" id="signalText"></div>
+                <div class="predicted-change" id="predictedChange"></div>
+
+                <div class="prediction-details" style="grid-template-columns: 1fr; border-bottom: 1px solid rgba(255, 255, 255, 0.2);">
+                    <div class="detail-item">
+                        <div class="detail-label">Ожидаемая цена</div>
+                        <div class="detail-value" id="expectedPrice">$0.00</div>
+                    </div>
+                </div>
+
+                <div class="prediction-details" style="grid-template-columns: 1fr 1fr; border-top: none; padding-top: 12px;">
+                    <div class="detail-item">
+                        <div class="detail-label">Поддержка</div>
+                        <div class="detail-value" id="support">$0.00</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Сопротивление</div>
+                        <div class="detail-value" id="resistance">$0.00</div>
+                    </div>
+                </div>
+
+                <div class="confidence-section">
+                    <div class="confidence-label">Уверенность в прогнозе</div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" id="confidenceFill"></div>
+                    </div>
+                    <div class="confidence-value" id="confidence">0%</div>
+                </div>
+
+                <div class="metrics" style="display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                    <div class="detail-item">
+                        <div class="detail-label">Погрешность (RMSE)</div>
+                        <div class="detail-value" id="rmse">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title">📊 Технический анализ</div>
+            <div class="indicators-grid" id="predictionIndicators"></div>
+
+            <div class="chart-container" style="margin-top: 20px;">
+                <canvas id="predictionChart"></canvas>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loadingText">Загрузка...</div>
+        </div>
+    </div>
+
+    <script>
+        // Обработчик кнопки "Назад"
+        document.getElementById('backBtn').addEventListener('click', () => {
+            window.history.back();
+        });
+    </script>
+    <script src="/static/app-detail.js"></script>
+</body>
+</html>

@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Вход/Регистрация - Pulse Traders</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 450px;
+            padding: 40px 30px;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 0;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #999;
+            position: relative;
+            transition: color 0.3s;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        input[type="email"],
+        input[type="password"],
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        input[type="email"]:focus,
+        input[type="password"]:focus,
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #f8f9ff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .password-toggle {
+            position: relative;
+        }
+
+        .toggle-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 18px;
+            margin-top: 18px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin: 20px 0;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-top: 2px;
+            cursor: pointer;
+            accent-color: #667eea;
+            flex-shrink: 0;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            text-transform: none;
+            font-weight: 400;
+            cursor: pointer;
+            line-height: 1.5;
+        }
+
+        .checkbox-group a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .checkbox-group a:hover {
+            text-decoration: underline;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 20px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #e8e8e8;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+            color: #ccc;
+            font-size: 12px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e0e0e0;
+        }
+
+        .telegram-btn {
+            background: #0088cc;
+            color: white !important;
+            margin-top: 12px !important;
+        }
+
+        .telegram-btn:hover {
+            background: #0077aa !important;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            display: none;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-error {
+            background: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+        }
+
+        .alert-success {
+            background: #efe;
+            color: #3c3;
+            border: 1px solid #cfc;
+        }
+
+        .alert-info {
+            background: #eef;
+            color: #33c;
+            border: 1px solid #ccf;
+        }
+
+        .link {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .link a:hover {
+            text-decoration: underline;
+        }
+
+        .spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .btn:disabled .spinner {
+            display: inline-block;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+                border-radius: 12px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .logo {
+                width: 60px;
+                height: 60px;
+                font-size: 30px;
+            }
+        }
+
+        /* Google кнопка стиль */
+        #g_id_onload {
+            text-align: center;
+        }
+
+        .g_id_signin {
+            width: 100% !important;
+            margin-top: 12px !important;
+        }
+
+        .verification-code-input {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .code-input {
+            width: 100%;
+            height: 48px;
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .code-input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .code-input:disabled {
+            background: #f5f5f5;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">📱</div>
+            <h1>Pulse Traders</h1>
+            <p>Анализ и прогнозы криптовалют</p>
+        </div>
+
+        <!-- ALERT -->
+        <div class="alert" id="alert"></div>
+
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="login">Вход</button>
+            <button class="tab-btn" data-tab="register">Регистрация</button>
+        </div>
+
+        <!-- ============ LOGIN TAB ============ -->
+        <div class="tab-content active" id="login-tab">
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="your@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Пароль</label>
+                    <div class="password-toggle">
+                        <input type="password" id="loginPassword" placeholder="••••••••" required>
+                        <button type="button" class="toggle-btn" onclick="togglePassword('loginPassword')">👁️</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <span class="spinner"></span>
+                    Войти
+                </button>
+            </form>
+
+            <div class="divider">или</div>
+
+            <!-- GOOGLE -->
+            <div id="g_id_onload"
+                 data-client_id="154411658303-lhc5cfoj9deb954ivbfd3g9k7ijlh5ob.apps.googleusercontent.com"
+                 data-callback="handleCredentialResponse">
+            </div>
+            <div class="g_id_signin" data-type="standard"></div>
+
+            <!-- TELEGRAM -->
+            <button type="button" class="btn btn-secondary telegram-btn" onclick="loginTelegram()">
+                ✈️ Telegram
+            </button>
+
+            <div class="link">
+                Нет аккаунта? <a href="#" onclick="switchTab('register'); return false;">Зарегистрируйтесь</a>
+            </div>
+        </div>
+
+        <!-- ============ REGISTER TAB ============ -->
+        <div class="tab-content" id="register-tab">
+            <form id="registerForm">
+                <div class="form-group">
+                    <label>Имя</label>
+                    <input type="text" id="registerName" placeholder="Ваше имя" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="registerEmail" placeholder="your@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Пароль</label>
+                    <div class="password-toggle">
+                        <input type="password" id="registerPassword" placeholder="Минимум 8 символов" required>
+                        <button type="button" class="toggle-btn" onclick="togglePassword('registerPassword')">👁️</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Повторите пароль</label>
+                    <div class="password-toggle">
+                        <input type="password" id="registerConfirmPassword" placeholder="Подтвердите пароль" required>
+                        <button type="button" class="toggle-btn" onclick="togglePassword('registerConfirmPassword')">👁️</button>
+                    </div>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="agreeTerms" required>
+                    <label for="agreeTerms">
+                        Я согласен с <a href="#" onclick="showTerms(); return false;">условиями обслуживания</a> и <a href="#" onclick="showPrivacy(); return false;">политикой конфиденциальности</a>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <span class="spinner"></span>
+                    Зарегистрироваться
+                </button>
+            </form>
+
+            <div class="divider">или</div>
+
+            <!-- GOOGLE для регистрации -->
+            <div class="g_id_signin" data-type="standard"></div>
+
+            <!-- TELEGRAM для регистрации -->
+            <button type="button" class="btn btn-secondary telegram-btn" onclick="registerTelegram()">
+                ✈️ Telegram
+            </button>
+
+            <div class="link">
+                Уже есть аккаунт? <a href="#" onclick="switchTab('login'); return false;">Войдите</a>
+            </div>
+        </div>
+
+        <!-- ============ VERIFICATION TAB ============ -->
+        <div class="tab-content" id="verification-tab">
+            <div class="form-group">
+                <label>Код подтверждения</label>
+                <p style="font-size: 13px; color: #666; margin-bottom: 16px;">
+                    Мы отправили код на <strong id="verifyEmail"></strong>
+                </p>
+                <div class="verification-code-input" id="codeInput"></div>
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="verifyCode()">
+                <span class="spinner"></span>
+                Подтвердить
+            </button>
+
+            <div class="link">
+                <button type="button" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-weight: 600;">
+                    Отправить код заново
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL для условий -->
+    <div id="termsModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 1000; overflow-y: auto; padding: 20px;">
+        <div style="background: white; border-radius: 12px; max-width: 600px; margin: 30px auto; padding: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="modalTitle" style="margin: 0; font-size: 20px;">Условия обслуживания</h2>
+                <button type="button" onclick="closeTerms()" style="background: none; border: none; font-size: 24px; cursor: pointer;">✕</button>
+            </div>
+            <div id="modalContent" style="max-height: 500px; overflow-y: auto; font-size: 13px; line-height: 1.6; color: #666;"></div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== ПЕРЕМЕННЫЕ ====================
+        let currentTab = 'login';
+        let verificationEmail = '';
+        let verificationCode = '';
+        let tempUserData = {};
+
+        // ==================== ФУНКЦИИ UI ====================
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`${tab}-tab`).classList.add('active');
+            event.target.classList.add('active');
+            currentTab = tab;
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+                
+                document.getElementById(`${tab}-tab`).classList.add('active');
+                btn.classList.add('active');
+                currentTab = tab;
+            });
+        });
+
+        function togglePassword(id) {
+            const input = document.getElementById(id);
+            input.type = input.type === 'password' ? 'text' : 'password';
+            event.target.textContent = input.type === 'password' ? '👁️' : '👁️‍🗨️';
+        }
+
+        function showAlert(message, type = 'error') {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert show alert-${type}`;
+            
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 4000);
+        }
+
+        function showTerms() {
+            fetch('/api/auth/terms')
+                .then(r => r.text())
+                .then(html => {
+                    document.getElementById('modalTitle').textContent = 'Условия обслуживания';
+                    document.getElementById('modalContent').innerHTML = html;
+                    document.getElementById('termsModal').style.display = 'block';
+                });
+        }
+
+        function showPrivacy() {
+            fetch('/api/auth/privacy')
+                .then(r => r.text())
+                .then(html => {
+                    document.getElementById('modalTitle').textContent = 'Политика конфиденциальности';
+                    document.getElementById('modalContent').innerHTML = html;
+                    document.getElementById('termsModal').style.display = 'block';
+                });
+        }
+
+        function closeTerms() {
+            document.getElementById('termsModal').style.display = 'none';
+        }
+
+        // ==================== АУТЕНТИФИКАЦИЯ ====================
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('.btn-primary');
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('loginEmail').value,
+                        password: document.getElementById('loginPassword').value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user_id', data.user_id);
+                    showAlert('✅ Успешный вход!', 'success');
+                    setTimeout(() => window.location.href = '/', 1500);
+                } else {
+                    showAlert(data.error || 'Ошибка входа', 'error');
+                }
+            } catch (error) {
+                showAlert('Ошибка: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('.btn-primary');
+
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerConfirmPassword').value;
+
+            if (password !== confirmPassword) {
+                showAlert('Пароли не совпадают', 'error');
+                return;
+            }
+
+            if (password.length < 8) {
+                showAlert('Пароль должен быть минимум 8 символов', 'error');
+                return;
+            }
+
+            if (!document.getElementById('agreeTerms').checked) {
+                showAlert('Согласитесь с условиями обслуживания', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: document.getElementById('registerName').value,
+                        email: document.getElementById('registerEmail').value,
+                        password: document.getElementById('registerPassword').value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    verificationEmail = document.getElementById('registerEmail').value;
+                    tempUserData = data;
+                    document.getElementById('verifyEmail').textContent = verificationEmail;
+                    
+                    // Генерируем поля для кода
+                    const codeInput = document.getElementById('codeInput');
+                    codeInput.innerHTML = '';
+                    for (let i = 0; i < 6; i++) {
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.maxLength = '1';
+                        input.className = 'code-input';
+                        input.inputMode = 'numeric';
+                        input.addEventListener('input', (e) => {
+                            if (e.target.value) {
+                                const next = e.target.nextElementSibling;
+                                if (next) next.focus();
+                            }
+                        });
+                        codeInput.appendChild(input);
+                    }
+
+                    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+                    document.getElementById('verification-tab').classList.add('active');
+                    showAlert('✅ Проверьте вашу почту', 'success');
+                } else {
+                    showAlert(data.error || 'Ошибка регистрации', 'error');
+                }
+            } catch (error) {
+                showAlert('Ошибка: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        function verifyCode() {
+            const inputs = document.querySelectorAll('.code-input');
+            const code = Array.from(inputs).map(i => i.value).join('');
+
+            if (code.length !== 6) {
+                showAlert('Введите все 6 цифр', 'error');
+                return;
+            }
+
+            fetch('/api/auth/verify-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: verificationEmail,
+                    code: code
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user_id', data.user_id);
+                    showAlert('✅ Email подтвержден!', 'success');
+                    setTimeout(() => window.location.href = '/', 1500);
+                } else {
+                    showAlert(data.error || 'Неверный код', 'error');
+                }
+            });
+        }
+
+        // ==================== GOOGLE OAUTH ====================
+
+        function handleCredentialResponse(response) {
+            // Отправляем token на backend
+            fetch('/api/auth/google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: response.credential })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user_id', data.user_id);
+                    showAlert('✅ Успешный вход через Google!', 'success');
+                    setTimeout(() => window.location.href = '/', 1500);
+                } else {
+                    showAlert(data.error || 'Ошибка входа', 'error');
+                }
+            });
+        }
+
+        window.onload = function () {
+            google.accounts.id.initialize({
+                client_id: '154411658303-lhc5cfoj9deb954ivbfd3g9k7ijlh5ob.apps.googleusercontent.com',
+                callback: handleCredentialResponse
+            });
+            google.accounts.id.renderButton(
+                document.querySelector('.g_id_signin'),
+                { theme: 'outline', size: 'large' }
+            );
+        };
+
+        // ==================== TELEGRAM ====================
+
+        function loginTelegram() {
+            window.Telegram?.WebApp?.ready?.();
+            window.location.href = `/api/auth/telegram?redirect=/`;
+        }
+
+        function registerTelegram() {
+            window.Telegram?.WebApp?.ready?.();
+            window.location.href = `/api/auth/telegram?redirect=/&register=true`;
+        }
+    </script>
+</body>
+</html>

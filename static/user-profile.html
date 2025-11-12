@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мой профиль - Pulse Traders</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #3390ec;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --secondary: #3d3a3f;
+            --text: #ffffff;
+            --text-secondary: #b0adb5;
+            --bg: #29262A;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding-bottom: 100px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .back-link {
+            display: inline-block;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .card {
+            background: var(--secondary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .profile-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .info-item {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .info-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .subscription-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        .badge-premium {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .badge-free {
+            background: var(--warning);
+            color: white;
+        }
+
+        .limits-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .limit-card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .limit-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .limit-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .limit-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .limit-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), var(--warning));
+            transition: width 0.3s;
+        }
+
+        .limit-percent {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .tier-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tier-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        }
+
+        .tier-name {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .tier-features {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .tier-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .tier-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .tier-button.active {
+            background: var(--success);
+            opacity: 0.7;
+        }
+
+        .tiers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .history-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .history-item {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 3px solid var(--primary);
+        }
+
+        .history-symbol {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .history-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 8px;
+        }
+
+        .history-signal {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .signal-buy {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .signal-sell {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .signal-hold {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .button {
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(51, 144, 236, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(51, 144, 236, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(51, 144, 236, 0.1);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            border: 3px solid var(--secondary);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid var(--success);
+            color: var(--success);
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid var(--danger);
+            color: var(--danger);
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid var(--warning);
+            color: var(--warning);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--secondary);
+        }
+
+        .tab-btn {
+            padding: 12px 16px;
+            background: none;
+            color: var(--text-secondary);
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .profile-info {
+                grid-template-columns: 1fr;
+            }
+
+            .limits-section {
+                grid-template-columns: 1fr;
+            }
+
+            .tiers-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>👤 Мой профиль</h1>
+            <a href="/" class="back-link">← На главную</a>
+        </div>
+
+        <!-- ALERT -->
+        <div class="alert" id="alert">
+            <span id="alertText"></span>
+        </div>
+
+        <!-- PROFILE CARD -->
+        <div class="card" id="profileCard">
+            <div class="card-title">👨‍💼 Информация профиля</div>
+            <div class="profile-info" id="profileInfo"></div>
+        </div>
+
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="limits">📊 Лимиты</button>
+            <button class="tab-btn" data-tab="subscription">💳 Подписка</button>
+            <button class="tab-btn" data-tab="history">📈 История</button>
+        </div>
+
+        <!-- LIMITS TAB -->
+        <div id="limits" class="tab-content active">
+            <div class="card">
+                <div class="card-title">📊 Лимиты на прогнозы</div>
+                <div class="limits-section" id="limitsSection"></div>
+
+                <!-- UPGRADE BANNER -->
+                <div class="card" id="upgradeBanner" style="background: rgba(245, 158, 11, 0.1); border-left: 4px solid var(--warning); display: none; margin-top: 20px;">
+                    <div class="card-title" style="color: var(--warning);">⚠️ Лимит исчерпан!</div>
+                    <p style="font-size: 14px; margin-bottom: 15px;">Вы использовали все прогнозы за день. Купите подписку для получения дополнительных прогнозов.</p>
+                    <button class="button btn-primary" onclick="switchToSubscription()">💳 Выбрать подписку</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUBSCRIPTION TAB -->
+        <div id="subscription" class="tab-content">
+            <div class="card">
+                <div class="card-title">💳 Текущая подписка</div>
+                <div id="currentSubscription"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">🎁 Доступные тарифы</div>
+                <div class="tiers-grid" id="tiersGrid"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title" style="color: var(--warning);">💡 Как это работает?</div>
+                <ul style="font-size: 13px; line-height: 1.8; color: var(--text-secondary);">
+                    <li>✅ Бесплатно: 5 прогнозов в день, 30 в месяц</li>
+                    <li>✅ Starter: 10 прогнозов в день, 100 в месяц</li>
+                    <li>✅ Pro: 25 прогнозов в день, 300 в месяц</li>
+                    <li>✅ Enterprise: неограниченные прогнозы</li>
+                    <li>✅ Лимиты обновляются каждый день в 00:00 UTC</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- HISTORY TAB -->
+        <div id="history" class="tab-content">
+            <div class="card">
+                <div class="card-title">📈 История прогнозов</div>
+                <div id="historyList"></div>
+            </div>
+        </div>
+
+        <!-- LOADING -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            Загрузка...
+        </div>
+    </div>
+
+    <script src="/static/user-profile.js"></script>
+</body>
+</html>
