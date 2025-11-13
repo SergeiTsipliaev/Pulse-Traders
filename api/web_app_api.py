@@ -273,6 +273,7 @@ async def index():
         return JSONResponse(status_code=500, content={"error": "Error loading app"})
 
 
+
 @app.get('/api/auth/me')
 async def get_current_user(authorization: str = Header(None), db=None):
     """Получить текущего пользователя"""
@@ -305,6 +306,26 @@ async def get_current_user(authorization: str = Header(None), db=None):
     except Exception as e:
         logger.error(f"Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get('/auth.html')
+async def auth_page():
+    """Страница авторизации"""
+    try:
+        return FileResponse("static/auth.html", media_type="text/html")
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return JSONResponse(status_code=500, content={"error": "Error loading page"})
+
+
+@app.get('/favicon.ico')
+async def favicon():
+    """Фавикон браузера"""
+    try:
+        return FileResponse("static/favicon.svg", media_type="image/svg+xml")
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return FileResponse("static/favicon.svg", media_type="image/svg+xml", status_code=404)
 
 
 @app.get('/auth-terms')
