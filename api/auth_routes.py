@@ -355,7 +355,7 @@ async def google_login(request: Request, body: GoogleTokenRequest):
 
         email = idinfo.get('email')
         name = idinfo.get('name', email.split('@')[0] if email else 'User')
-        google_id = idinfo.get('user_id')
+        google_id = str(idinfo.get('user_id')) if idinfo.get('user_id') else None
 
         if not email:
             return JSONResponse(
@@ -373,13 +373,13 @@ async def google_login(request: Request, body: GoogleTokenRequest):
             if user:
                 user_id = user['id']
             else:
-                user = await conn.execute("""
+                user = await conn.fetchrow("""
                     INSERT INTO users (email, first_name, google_id, is_active, verified_at)
                     VALUES ($1, $2, $3, TRUE, CURRENT_TIMESTAMP)
                     RETURNING id
                 """, email, name, google_id)
 
-                user_id = user[0][0]
+                user_id = user['id']
 
             token = create_jwt_token(user_id, email)
 
