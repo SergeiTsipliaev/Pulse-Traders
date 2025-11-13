@@ -49,6 +49,15 @@ class VerifyEmailRequest(BaseModel):
 class GoogleTokenRequest(BaseModel):
     token: str
 
+class TelegramAuthRequest(BaseModel):
+    id: int
+    first_name: str = ""
+    last_name: str = ""
+    username: str = ""
+    is_bot: bool = False
+    language_code: str = ""
+    init_data: str = ""
+
 # ==================== EMAIL СЕРВИС ====================
 
 async def send_email(to_email: str, subject: str, html_content: str):
@@ -409,46 +418,56 @@ async def google_login(request: Request, body: GoogleTokenRequest):
             content={'success': False, 'error': f'Authentication failed: {str(e)}'}
         )
 
-@router.get("/telegram")
-async def telegram_auth(request: Request, redirect: str = "/", register: bool = False):
-    """OAuth через Telegram"""
+
+@router.post("/telegram")
+async def telegram_auth(request: Request, body: TelegramAuthRequest):
+    """
+    OAuth через Telegram Web App - РЕАЛЬНАЯ интеграция
+    Получает данные пользователя прямо из Telegram Web App
+    """
     try:
-        # Получаем db из request.state
         db = request.state.db
 
         if not db or not db.is_connected:
             logger.error("❌ Database не подключена")
-            error_url = f"{redirect}?error=Database+unavailable"
-            return RedirectResponse(url=error_url, status_code=302)
+            return JSONResponse(
+                status_code=503,
+                content={'success': False, 'error': 'Database unavailable'}
+            )
 
-        # Получаем параметры из Telegram
-        telegram_id = request.query_params.get('id')
-        first_name = request.query_params.get('first_name', '')
-        last_name = request.query_params.get('last_name', '')
-        username = request.query_params.get('username', '')
+        telegram_id = body.id
+        first_name = body.first_name
+        last_name = body.last_name
+        username = body.username
 
-        logger.info(f"📱 Telegram auth attempt: id={telegram_id}, first_name={first_name}")
+        logger.info(f"📱 Telegram Web App auth: id={telegram_id}, username={username}")
 
-        # ✅ Если параметры не переданы (для тестирования), используем дефолтные
         if not telegram_id:
-            # В продакшене это будет ошибка, но для разработки используем тестовые данные
-            logger.warning("⚠️ Telegram ID not provided - using test data")
-            telegram_id = request.query_params.get('test_id', '123456789')  # Тестовый ID
-            first_name = first_name or 'Test'
-            username = username or 'testuser'
-            logger.info(f"✅ Using test Telegram ID: {telegram_id}")
+            logger.error("❌ No telegram_id provided")
+            return JSONResponse(
+                status_code=400,
+                content={'success': False, 'error': 'Invalid Telegram data'}
+            )
 
         # Используем asyncpg напрямую
         async with db.pool.acquire() as conn:
             # Проверяем, существует ли пользователь
             user = await conn.fetchrow(
                 "SELECT id, is_active FROM users WHERE telegram_id = $1",
-                int(telegram_id)
+                telegram_id
             )
 
             if user:
                 user_id = user['id']
-                logger.info(f"✅ Telegram user found: {user_id}")
+                logger.info(f"✅ Existing Telegram user found: {user_id}")
+
+                # Обновляем данные пользователя если нужно
+                await conn.execute(
+                    """UPDATE users 
+                       SET first_name = $1, last_name = $2, username = $3, last_active = CURRENT_TIMESTAMP 
+                       WHERE id = $4""",
+                    first_name, last_name, username, user_id
+                )
             else:
                 # Создаем нового пользователя
                 email = f"tg_{telegram_id}@pulsetraders.local"
@@ -456,40 +475,36 @@ async def telegram_auth(request: Request, redirect: str = "/", register: bool = 
                     INSERT INTO users (telegram_id, first_name, last_name, username, email, is_active, verified_at)
                     VALUES ($1, $2, $3, $4, $5, TRUE, CURRENT_TIMESTAMP)
                     RETURNING id
-                """, int(telegram_id), first_name, last_name, username, email)
+                """, telegram_id, first_name, last_name, username, email)
 
                 if not user:
                     logger.error("Failed to create user")
-                    error_url = f"{redirect}?error=Failed+to+create+user"
-                    return RedirectResponse(url=error_url, status_code=302)
+                    return JSONResponse(
+                        status_code=500,
+                        content={'success': False, 'error': 'Failed to create user'}
+                    )
 
                 user_id = user['id']
-                logger.info(f"✅ New Telegram user created: {user_id}")
-
-            # Обновляем last_active
-            await conn.execute(
-                "UPDATE users SET last_active = CURRENT_TIMESTAMP WHERE id = $1",
-                user_id
-            )
+                logger.info(f"✅ New Telegram user created: {user_id} (@{username})")
 
         # Создаем JWT токен
         token = create_jwt_token(user_id, f"tg_{telegram_id}@pulsetraders.local")
 
-        logger.info(f"✅ Telegram login success: {telegram_id}")
+        logger.info(f"✅ Telegram login success: {telegram_id} (ID: {user_id})")
 
-        # ✅ Редиректим с параметрами
-        redirect_url = f"{redirect}?token={token}&user_id={user_id}&success=true"
-        response = RedirectResponse(url=redirect_url, status_code=302)
-
-        # Также сохраняем токен в cookie для удобства
-        response.set_cookie("auth_token", token, httponly=True, secure=False, samesite="lax", max_age=86400*7)
-
-        return response
+        return JSONResponse({
+            'success': True,
+            'user_id': user_id,
+            'token': token,
+            'message': '✅ Добро пожаловать!'
+        })
 
     except Exception as e:
         logger.error(f"❌ Telegram OAuth error: {str(e)}", exc_info=True)
-        error_url = f"{redirect}?error={str(e)}"
-        return RedirectResponse(url=error_url, status_code=302)
+        return JSONResponse(
+            status_code=500,
+            content={'success': False, 'error': f'Error: {str(e)}'}
+        )
 
 
 @router.get("/me")

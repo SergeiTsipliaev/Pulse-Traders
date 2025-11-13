@@ -854,18 +854,74 @@
         // ==================== TELEGRAM OAUTH ====================
 
         function loginTelegram() {
-            window.Telegram?.WebApp?.ready?.();
-            // ✅ Передаем полный URL как redirect параметр
-            const redirectUrl = `${window.location.origin}/auth`;
-            window.location.href = `/api/auth/telegram?redirect=${encodeURIComponent(redirectUrl)}`;
+    if (!window.Telegram || !window.Telegram.WebApp) {
+        showAlert('❌ Telegram Web App не доступен. Используйте Telegram бот.', 'error');
+        return;
+    }
+
+    try {
+        window.Telegram.WebApp.ready();
+
+        const initData = window.Telegram.WebApp.initData;
+        const user = window.Telegram.WebApp.initDataUnsafe?.user;
+
+        console.log('📱 Telegram user data:', user);
+
+        if (!user || !user.id) {
+            showAlert('❌ Не удалось получить данные Telegram аккаунта', 'error');
+            return;
         }
 
-        function registerTelegram() {
-            window.Telegram?.WebApp?.ready?.();
-            // ✅ Для регистрации также используем auth страницу
-            const redirectUrl = `${window.location.origin}/auth`;
-            window.location.href = `/api/auth/telegram?redirect=${encodeURIComponent(redirectUrl)}&register=true`;
+        submitTelegramAuth({
+            id: user.id,
+            first_name: user.first_name || '',
+            last_name: user.last_name || '',
+            username: user.username || '',
+            is_bot: user.is_bot || false,
+            language_code: user.language_code || '',
+            init_data: initData
+        });
+
+    } catch (error) {
+        console.error('❌ Telegram error:', error);
+        showAlert('❌ Ошибка: ' + error.message, 'error');
+    }
+}
+
+function registerTelegram() {
+    loginTelegram();
+}
+
+async function submitTelegramAuth(telegramUser) {
+    console.log('📤 Submitting Telegram auth:', telegramUser);
+
+    try {
+        const response = await fetch('/api/auth/telegram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(telegramUser)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            localStorage.setItem('auth_token', data.token);
+            localStorage.setItem('user_id', data.user_id);
+            sessionStorage.setItem('auth_token', data.token);
+
+            showAlert('✅ Успешный вход через Telegram!', 'success');
+
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 1000);
+        } else {
+            showAlert(data.error || 'Ошибка аутентификации', 'error');
         }
+    } catch (error) {
+        console.error('❌ Error:', error);
+        showAlert('❌ Ошибка: ' + error.message, 'error');
+    }
+}
     </script>
 </body>
 </html>

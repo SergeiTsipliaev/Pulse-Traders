@@ -1,24 +1,34 @@
 let currentUserId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
+    // ✅ ИСПРАВЛЕНО: используем правильный ключ 'user_id' (не 'userId')
+    const token = localStorage.getItem('auth_token');
+    const userId = localStorage.getItem('user_id');
+
+    console.log('✅ Token:', token ? 'есть' : 'нет');
+    console.log('✅ User ID:', userId);
+
     // Получаем user_id
     if (window.Telegram && window.Telegram.WebApp) {
         const webApp = window.Telegram.WebApp;
         const user = webApp.initDataUnsafe?.user;
         if (user) {
             currentUserId = user.id;
-            localStorage.setItem('userId', user.id);
         }
     }
 
+    // Если из Telegram не получили, берем из localStorage
     if (!currentUserId) {
-        currentUserId = localStorage.getItem('userId');
+        currentUserId = userId;
     }
 
     if (!currentUserId) {
         showAlert('❌ Ошибка: не удалось получить ID пользователя', 'error');
+        console.error('❌ No user ID found');
         return;
     }
+
+    console.log('✅ Current User ID:', currentUserId);
 
     // Загружаем данные
     loadProfile();
@@ -63,13 +73,19 @@ function switchToSubscription() {
 
 async function loadProfile() {
     try {
+        console.log('📝 Loading profile for user:', currentUserId);
+
         const response = await fetch('/api/user/profile', {
             headers: {
                 'x-user-id': currentUserId
             }
         });
 
+        console.log('Response status:', response.status);
+
         const data = await response.json();
+
+        console.log('Profile data:', data);
 
         if (data.success && data.data) {
             const userData = data.data.user;
@@ -103,15 +119,19 @@ async function loadProfile() {
             `;
 
             document.getElementById('profileInfo').innerHTML = profileHTML;
+        } else {
+            showAlert('❌ ' + (data.error || 'Ошибка загрузки профиля'), 'error');
         }
     } catch (error) {
-        console.error('Error loading profile:', error);
-        showAlert('❌ Ошибка загрузки профиля', 'error');
+        console.error('❌ Error loading profile:', error);
+        showAlert('❌ Ошибка загрузки профиля: ' + error.message, 'error');
     }
 }
 
 async function loadLimits() {
     try {
+        console.log('📊 Loading limits for user:', currentUserId);
+
         const response = await fetch('/api/user/limits', {
             headers: {
                 'x-user-id': currentUserId
@@ -120,46 +140,54 @@ async function loadLimits() {
 
         const data = await response.json();
 
+        console.log('Limits data:', data);
+
         if (data.success && data.data) {
             const limits = data.data;
 
-            const dailyPercent = (limits.daily.used / limits.daily.limit) * 100;
-            const monthlyPercent = (limits.monthly.used / limits.monthly.limit) * 100;
+            const dailyPercent = (limits.predictions_used_today / limits.predictions_limit_daily) * 100;
+            const monthlyPercent = (limits.predictions_used_month / limits.predictions_limit_monthly) * 100;
 
             const limitsHTML = `
                 <div class="limit-card">
                     <div class="limit-label">📅 Прогнозы в день</div>
-                    <div class="limit-value">${limits.daily.remaining}/${limits.daily.limit}</div>
+                    <div class="limit-value">${limits.predictions_limit_daily - limits.predictions_used_today}/${limits.predictions_limit_daily}</div>
                     <div class="limit-bar">
-                        <div class="limit-fill" style="width: ${dailyPercent}%"></div>
+                        <div class="limit-bar-fill" style="width: ${dailyPercent}%"></div>
                     </div>
-                    <div class="limit-percent">Использовано: ${limits.daily.used} (${Math.round(dailyPercent)}%)</div>
                 </div>
                 <div class="limit-card">
-                    <div class="limit-label">📊 Прогнозы в месяц</div>
-                    <div class="limit-value">${limits.monthly.remaining}/${limits.monthly.limit}</div>
+                    <div class="limit-label">📆 Прогнозы в месяц</div>
+                    <div class="limit-value">${limits.predictions_limit_monthly - limits.predictions_used_month}/${limits.predictions_limit_monthly}</div>
                     <div class="limit-bar">
-                        <div class="limit-fill" style="width: ${monthlyPercent}%"></div>
+                        <div class="limit-bar-fill" style="width: ${monthlyPercent}%"></div>
                     </div>
-                    <div class="limit-percent">Использовано: ${limits.monthly.used} (${Math.round(monthlyPercent)}%)</div>
                 </div>
             `;
 
-            document.getElementById('limitsSection').innerHTML = limitsHTML;
+            document.getElementById('limitsInfo').innerHTML = limitsHTML;
 
-            // Показываем баннер если лимит исчерпан
-            if (!limits.can_predict && limits.needs_premium) {
-                document.getElementById('upgradeBanner').style.display = 'block';
+            // Если исчерпаны лимиты, показываем сообщение
+            if ((limits.predictions_limit_daily - limits.predictions_used_today) <= 0) {
+                document.getElementById('dailyLimitAlert').innerHTML = `
+                    <p style="color: #ff6b6b; font-weight: 600;">⚠️ Вы исчерпали дневной лимит!</p>
+                    <p style="font-size: 13px; color: var(--text-secondary);">Купите подписку для получения дополнительных прогнозов.</p>
+                    <button class="button btn-primary" onclick="switchToSubscription()">💳 Выбрать подписку</button>
+                `;
             }
+        } else {
+            showAlert('❌ ' + (data.error || 'Ошибка загрузки лимитов'), 'error');
         }
     } catch (error) {
-        console.error('Error loading limits:', error);
-        showAlert('❌ Ошибка загрузки лимитов', 'error');
+        console.error('❌ Error loading limits:', error);
+        showAlert('❌ Ошибка загрузки лимитов: ' + error.message, 'error');
     }
 }
 
 async function loadSubscription() {
     try {
+        console.log('💳 Loading subscription for user:', currentUserId);
+
         const response = await fetch('/api/user/subscription', {
             headers: {
                 'x-user-id': currentUserId
@@ -168,102 +196,47 @@ async function loadSubscription() {
 
         const data = await response.json();
 
-        if (data.success && data.data) {
-            const subData = data.data;
+        console.log('Subscription data:', data);
 
-            let currentSubHTML = '';
-            if (subData.status === 'active' && subData.subscription) {
-                const sub = subData.subscription;
-                currentSubHTML = `
-                    <div class="tier-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); margin-bottom: 20px;">
-                        <div class="tier-name">💎 ${sub.display_name}</div>
-                        <div class="tier-features">
-                            <span>💵 $${sub.price}/месяц</span>
-                            <span>📊 ${sub.daily_predictions} прогнозов в день</span>
-                            <span>📅 ${sub.monthly_predictions} прогнозов в месяц</span>
-                            ${sub.expires_at ? `<span>⏰ Действует до: ${new Date(sub.expires_at).toLocaleDateString('ru-RU')}</span>` : ''}
+        if (data.success && data.data) {
+            const subscription = data.data;
+
+            if (subscription) {
+                const subscriptionHTML = `
+                    <div class="card-content">
+                        <div class="subscription-info">
+                            <div class="subscription-name">💎 ${subscription.name || 'Активная подписка'}</div>
+                            <div class="subscription-price">${subscription.price || '∞'} USD/месяц</div>
+                            <div style="margin-top: 12px; color: var(--text-secondary); font-size: 13px;">
+                                ✅ ${subscription.daily_predictions || subscription.monthly_predictions || '∞'} прогнозов
+                            </div>
                         </div>
-                        <button class="tier-button active">✅ Текущий план</button>
                     </div>
                 `;
-            } else if (subData.status === 'expired') {
-                currentSubHTML = `
-                    <div class="card" style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--danger); margin-bottom: 20px;">
-                        <div class="card-title" style="color: var(--danger);">⏰ Подписка истекла</div>
-                        <p>Ваша подписка закончилась ${new Date(subData.subscription.expires_at).toLocaleDateString('ru-RU')}. Обновите подписку ниже.</p>
-                    </div>
-                `;
+                document.getElementById('currentSubscription').innerHTML = subscriptionHTML;
             } else {
-                currentSubHTML = `
-                    <div class="tier-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); margin-bottom: 20px;">
-                        <div class="tier-name">🆓 Бесплатный тариф</div>
-                        <div class="tier-features">
-                            <span>💵 Бесплатно</span>
-                            <span>📊 5 прогнозов в день</span>
-                            <span>📅 30 прогнозов в месяц</span>
+                document.getElementById('currentSubscription').innerHTML = `
+                    <div class="card-content">
+                        <div style="text-align: center; padding: 20px;">
+                            <div style="font-size: 24px; margin-bottom: 8px;">🆓</div>
+                            <div style="font-weight: 600;">Бесплатный план</div>
+                            <div style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;">
+                                5 прогнозов в день, 30 в месяц
+                            </div>
                         </div>
-                        <button class="tier-button active">✅ Текущий план</button>
                     </div>
                 `;
             }
-
-            document.getElementById('currentSubscription').innerHTML = currentSubHTML;
-
-            // Загружаем доступные тарифы
-            loadAvailableTiers();
         }
     } catch (error) {
-        console.error('Error loading subscription:', error);
-        showAlert('❌ Ошибка загрузки подписки', 'error');
+        console.error('❌ Error loading subscription:', error);
     }
-}
-
-async function loadAvailableTiers() {
-    try {
-        const response = await fetch('/api/user/subscription/available-tiers', {
-            headers: {
-                'x-user-id': currentUserId
-            }
-        });
-
-        const data = await response.json();
-
-        if (data.success && data.data) {
-            const tiersHTML = data.data.map(tier => `
-                <div class="tier-card">
-                    <div class="tier-name">⭐ ${tier.display_name}</div>
-                    <div style="font-size: 28px; font-weight: 700; margin: 10px 0;">$${tier.price}</div>
-                    <div style="font-size: 12px; color: rgba(255, 255, 255, 0.8); margin-bottom: 10px;">/месяц</div>
-                    <div class="tier-features">
-                        <span>📊 ${tier.daily_predictions} в день</span>
-                        <span>📅 ${tier.monthly_predictions} в месяц</span>
-                        ${tier.description ? `<span>${tier.description}</span>` : ''}
-                    </div>
-                    <button class="tier-button" onclick="subscribeToPlan(${tier.id}, '${tier.display_name}')">
-                        🔒 Выбрать план
-                    </button>
-                </div>
-            `).join('');
-
-            document.getElementById('tiersGrid').innerHTML = tiersHTML;
-        }
-    } catch (error) {
-        console.error('Error loading tiers:', error);
-    }
-}
-
-async function subscribeToPlan(tierId, tierName) {
-    alert(`Функция оплаты в разработке.\n\nТариф: ${tierName}\n\nПосле интеграции платежей (Stripe/Yoo.Kassa) можно будет подписаться здесь.`);
-
-    // TODO: Интегрировать Stripe/Yoo.Kassa API
-    // Логика:
-    // 1. Отправить запрос на /api/payment/create-session
-    // 2. Перенаправить на платежную форму
-    // 3. После успешной оплаты обновить подписку
 }
 
 async function loadPredictionHistory() {
     try {
+        console.log('📈 Loading prediction history for user:', currentUserId);
+
         const response = await fetch('/api/user/predictions/history?limit=20', {
             headers: {
                 'x-user-id': currentUserId
@@ -271,6 +244,8 @@ async function loadPredictionHistory() {
         });
 
         const data = await response.json();
+
+        console.log('History data:', data);
 
         if (data.success && data.data) {
             if (data.data.length === 0) {
@@ -297,8 +272,8 @@ async function loadPredictionHistory() {
             document.getElementById('historyList').innerHTML = historyHTML;
         }
     } catch (error) {
-        console.error('Error loading history:', error);
-        showAlert('❌ Ошибка загрузки истории', 'error');
+        console.error('❌ Error loading history:', error);
+        showAlert('❌ Ошибка загрузки истории: ' + error.message, 'error');
     }
 }
 

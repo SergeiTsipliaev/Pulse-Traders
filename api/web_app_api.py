@@ -466,6 +466,16 @@ async def user_profile():
         return JSONResponse(status_code=500, content={"error": "Error loading page"})
 
 
+@app.get('/dashboard')
+async def dashboard():
+    """Панель управления пользователя (требует авторизации)"""
+    try:
+        return FileResponse("static/user-profile.html", media_type="text/html")
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return JSONResponse(status_code=500, content={"error": "Error loading page"})
+
+
 @app.get('/crypto-detail.html')
 async def crypto_detail():
     try:

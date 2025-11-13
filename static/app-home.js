@@ -18,8 +18,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function updateAuthButtons() {
     const authButtonsDiv = document.getElementById('authButtons');
-    const token = localStorage.getItem('token');
+    // ✅ ИСПРАВЛЕНО: используем 'auth_token' вместо 'token'
+    const token = localStorage.getItem('auth_token');
     const userId = localStorage.getItem('user_id');
+
+    console.log('🔐 Auth check - Token:', token ? 'есть' : 'нет', 'User ID:', userId);
 
     if (token && userId) {
         // Пользователь авторизован - показываем профиль
@@ -31,7 +34,7 @@ async function updateAuthButtons() {
                         <div style="font-weight: 600;">Мой профиль</div>
                         <div class="user-email" id="userEmail">user@example.com</div>
                     </div>
-                    <a href="/user-profile.html" class="dropdown-item">👤 Личный кабинет</a>
+                    <a href="/dashboard" class="dropdown-item">👤 Личный кабинет</a>
                     <button onclick="logout()" class="dropdown-item danger">🚪 Выйти</button>
                 </div>
             </div>
@@ -72,8 +75,10 @@ function toggleProfileMenu() {
 
 function logout() {
     if (confirm('Вы уверены?')) {
-        localStorage.removeItem('token');
+        // ✅ ИСПРАВЛЕНО: удаляем 'auth_token' вместо 'token'
+        localStorage.removeItem('auth_token');
         localStorage.removeItem('user_id');
+        sessionStorage.removeItem('auth_token');
         window.location.href = '/';
     }
 }
@@ -120,16 +125,17 @@ async function renderCryptoGrid() {
                 grid.appendChild(card);
             });
         } else {
-            console.error('Failed to load cryptos:', data);
+            console.error('Failed to load cryptos:', data.error);
             grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #999;">Ошибка загрузки</div>';
         }
     } catch (error) {
-        console.error('Error loading cryptos:', error);
+        console.error('Error rendering cryptos:', error);
         grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #999;">Ошибка подключения</div>';
     }
 }
 
 function openCrypto(symbol) {
+    console.log('Opening crypto:', symbol);
     window.location.href = `/crypto-detail.html?symbol=${symbol}`;
 }
 
@@ -137,34 +143,27 @@ function openCrypto(symbol) {
 
 function setupSearch() {
     const searchInput = document.getElementById('searchInput');
-    const searchResults = document.getElementById('searchResults');
-
-    if (!searchInput || !searchResults) {
-        console.error('Search elements not found');
-        return;
-    }
+    if (!searchInput) return;
 
     searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
         const query = e.target.value.trim();
 
-        if (searchTimeout) clearTimeout(searchTimeout);
-
-        if (query.length === 0) {
-            searchResults.classList.remove('show');
+        if (query.length < 1) {
+            document.getElementById('searchResults').innerHTML = '';
             return;
         }
-
-        searchResults.innerHTML = '<div style="padding: 12px 16px;">🔍 Поиск...</div>';
-        searchResults.classList.add('show');
 
         searchTimeout = setTimeout(() => {
             performSearch(query);
         }, 300);
     });
 
+    // Закрываем результаты при клике вне поиска
     document.addEventListener('click', (e) => {
-        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-            searchResults.classList.remove('show');
+        const searchBox = document.querySelector('.search-box');
+        if (searchBox && !searchBox.contains(e.target)) {
+            document.getElementById('searchResults').innerHTML = '';
         }
     });
 }
@@ -175,7 +174,7 @@ async function performSearch(query) {
     const searchResults = document.getElementById('searchResults');
 
     try {
-        const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}`);
+        const response = await fetch(`${API_URL}/cryptos/search?q=${encodeURIComponent(query)}`);
         const data = await response.json();
 
         if (data.success && data.data && data.data.length > 0) {
