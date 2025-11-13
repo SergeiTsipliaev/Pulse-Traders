@@ -789,7 +789,8 @@
         window.onload = function () {
             google.accounts.id.initialize({
                 client_id: '154411658303-lhc5cfoj9deb954ivbfd3g9k7ijlh5ob.apps.googleusercontent.com',
-                callback: handleCredentialResponse
+                callback: handleCredentialResponse,
+                ux_mode: 'popup'
             });
             google.accounts.id.renderButton(
                 document.querySelector('.g_id_signin'),

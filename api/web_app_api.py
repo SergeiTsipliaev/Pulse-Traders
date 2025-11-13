@@ -557,8 +557,24 @@ async def get_crypto_data(symbol: str):
 
 
 @app.post('/api/predict/{symbol}')
-async def predict_price(symbol: str, x_user_id: int = Header(None)):
+async def predict_price(symbol: str, request: Request):
     """Прогноз цены с проверкой лимитов"""
+    authorization = request.headers.get('Authorization')
+
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        scheme, token = authorization.split()
+        payload = verify_jwt_token(token)
+
+        if not payload:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
+        x_user_id = int(payload.get('sub'))
+    except:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
     symbol = symbol.upper()
     if not symbol.endswith('USDT'):
         symbol = f"{symbol}USDT"
