@@ -469,14 +469,14 @@ function displayCandlestickChart(klines, interval, ctx) {
 
                         tooltipElement.textContent = tooltipText;
                         tooltipElement.style.display = 'block';
-                        
+
                         let tooltipX = e.clientX + 10;
                         let tooltipY = e.clientY - 80;
-                        
+
                         if (tooltipX + 150 > window.innerWidth) {
                             tooltipX = e.clientX - 160;
                         }
-                        
+
                         tooltipElement.style.left = tooltipX + 'px';
                         tooltipElement.style.top = tooltipY + 'px';
                     } else {
