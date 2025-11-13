@@ -564,12 +564,53 @@
         let verificationCode = '';
         let tempUserData = {};
 
+        // ==================== ОБРАБОТКА ПАРАМЕТРОВ РЕДИРЕКТА ====================
+
+        function handleAuthRedirect() {
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            const userId = params.get('user_id');
+            const error = params.get('error');
+
+            // Если есть ошибка
+            if (error) {
+                console.error('❌ Ошибка аутентификации:', decodeURIComponent(error));
+                showAlert('❌ Ошибка входа: ' + decodeURIComponent(error), 'error');
+                // Очищаем URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return;
+            }
+
+            // Если есть токен и user_id
+            if (token && userId) {
+                console.log('✅ Успешная аутентификация');
+
+                // ✅ Сохраняем токен в localStorage (используем auth_token как ключ)
+                localStorage.setItem('auth_token', token);
+                localStorage.setItem('user_id', userId);
+
+                // Также сохраняем в sessionStorage для текущей сессии
+                sessionStorage.setItem('auth_token', token);
+                sessionStorage.setItem('user_id', userId);
+
+                showAlert('✅ Вы успешно вошли!', 'success');
+
+                // Очищаем параметры из URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+
+                // Редиректим на dashboard через 1.5 секунды
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 1500);
+            }
+        }
+
         // ==================== ФУНКЦИИ UI ====================
 
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            
+
             document.getElementById(`${tab}-tab`).classList.add('active');
             event.target.classList.add('active');
             currentTab = tab;
@@ -580,7 +621,7 @@
                 const tab = btn.dataset.tab;
                 document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
                 document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-                
+
                 document.getElementById(`${tab}-tab`).classList.add('active');
                 btn.classList.add('active');
                 currentTab = tab;
@@ -597,7 +638,7 @@
             const alert = document.getElementById('alert');
             alert.textContent = message;
             alert.className = `alert show alert-${type}`;
-            
+
             setTimeout(() => {
                 alert.classList.remove('show');
             }, 4000);
@@ -647,10 +688,13 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    localStorage.setItem('token', data.token);
+                    // ✅ Используем auth_token как ключ
+                    localStorage.setItem('auth_token', data.token);
                     localStorage.setItem('user_id', data.user_id);
+                    sessionStorage.setItem('auth_token', data.token);
+
                     showAlert('✅ Успешный вход!', 'success');
-                    setTimeout(() => window.location.href = '/', 1500);
+                    setTimeout(() => window.location.href = '/dashboard', 1500);
                 } else {
                     showAlert(data.error || 'Ошибка входа', 'error');
                 }
@@ -702,7 +746,7 @@
                     verificationEmail = document.getElementById('registerEmail').value;
                     tempUserData = data;
                     document.getElementById('verifyEmail').textContent = verificationEmail;
-                    
+
                     // Генерируем поля для кода
                     const codeInput = document.getElementById('codeInput');
                     codeInput.innerHTML = '';
@@ -754,10 +798,13 @@
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    localStorage.setItem('token', data.token);
+                    // ✅ Используем auth_token как ключ
+                    localStorage.setItem('auth_token', data.token);
                     localStorage.setItem('user_id', data.user_id);
+                    sessionStorage.setItem('auth_token', data.token);
+
                     showAlert('✅ Email подтвержден!', 'success');
-                    setTimeout(() => window.location.href = '/', 1500);
+                    setTimeout(() => window.location.href = '/dashboard', 1500);
                 } else {
                     showAlert(data.error || 'Неверный код', 'error');
                 }
@@ -776,10 +823,13 @@
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    localStorage.setItem('token', data.token);
+                    // ✅ Используем auth_token как ключ
+                    localStorage.setItem('auth_token', data.token);
                     localStorage.setItem('user_id', data.user_id);
+                    sessionStorage.setItem('auth_token', data.token);
+
                     showAlert('✅ Успешный вход через Google!', 'success');
-                    setTimeout(() => window.location.href = '/', 1500);
+                    setTimeout(() => window.location.href = '/dashboard', 1500);
                 } else {
                     showAlert(data.error || 'Ошибка входа', 'error');
                 }
@@ -796,18 +846,25 @@
                 document.querySelector('.g_id_signin'),
                 { theme: 'outline', size: 'large' }
             );
+
+            // ✅ Проверяем параметры редиректа при загрузке
+            handleAuthRedirect();
         };
 
-        // ==================== TELEGRAM ====================
+        // ==================== TELEGRAM OAUTH ====================
 
         function loginTelegram() {
             window.Telegram?.WebApp?.ready?.();
-            window.location.href = `/api/auth/telegram?redirect=/`;
+            // ✅ Передаем полный URL как redirect параметр
+            const redirectUrl = `${window.location.origin}/auth`;
+            window.location.href = `/api/auth/telegram?redirect=${encodeURIComponent(redirectUrl)}`;
         }
 
         function registerTelegram() {
             window.Telegram?.WebApp?.ready?.();
-            window.location.href = `/api/auth/telegram?redirect=/&register=true`;
+            // ✅ Для регистрации также используем auth страницу
+            const redirectUrl = `${window.location.origin}/auth`;
+            window.location.href = `/api/auth/telegram?redirect=${encodeURIComponent(redirectUrl)}&register=true`;
         }
     </script>
 </body>

@@ -318,6 +318,104 @@ async def auth_page():
         return JSONResponse(status_code=500, content={"error": "Error loading page"})
 
 
+@app.get('/auth')
+async def auth_redirect_handler():
+    """Обработчик редиректов с авторизации"""
+    from fastapi.responses import HTMLResponse
+
+    html = """
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Авторизация - Pulse Traders</title>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                margin: 0;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            .container {
+                text-align: center;
+                background: white;
+                padding: 40px;
+                border-radius: 12px;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            }
+            .spinner {
+                border: 4px solid #f3f3f3;
+                border-top: 4px solid #667eea;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 20px;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            h1 { color: #333; margin-top: 0; }
+            p { color: #666; }
+            .error { color: #c33; background: #fee; padding: 12px; border-radius: 8px; margin-top: 20px; }
+            .success { color: #3c3; background: #efe; padding: 12px; border-radius: 8px; margin-top: 20px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="spinner"></div>
+            <h1>Авторизация...</h1>
+            <p id="message">Пожалуйста, подождите</p>
+            <div id="status"></div>
+        </div>
+
+        <script>
+            function handleAuthRedirect() {
+                const params = new URLSearchParams(window.location.search);
+                const token = params.get('token');
+                const userId = params.get('user_id');
+                const error = params.get('error');
+
+                const messageEl = document.getElementById('message');
+                const statusEl = document.getElementById('status');
+
+                if (error) {
+                    const errorMsg = decodeURIComponent(error);
+                    messageEl.textContent = 'Ошибка авторизации';
+                    statusEl.innerHTML = `<div class="error"><strong>Ошибка:</strong> ${errorMsg}</div>`;
+                    setTimeout(() => { window.location.href = '/auth.html'; }, 3000);
+                    return;
+                }
+
+                if (token && userId) {
+                    localStorage.setItem('auth_token', token);
+                    localStorage.setItem('user_id', userId);
+                    sessionStorage.setItem('auth_token', token);
+
+                    messageEl.textContent = 'Авторизация успешна!';
+                    statusEl.innerHTML = '<div class="success">✅ Вы успешно вошли. Переводим...</div>';
+                    setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
+                    return;
+                }
+
+                messageEl.textContent = 'Нет данных авторизации';
+                statusEl.innerHTML = '<div class="error">Параметры авторизации не найдены</div>';
+                setTimeout(() => { window.location.href = '/auth.html'; }, 2000);
+            }
+
+            window.addEventListener('DOMContentLoaded', handleAuthRedirect);
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
+
+
 @app.get('/favicon.ico')
 async def favicon():
     """Фавикон браузера"""
