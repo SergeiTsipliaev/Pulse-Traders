@@ -107,15 +107,21 @@
         }
 
         .profile-btn {
-            width: 40px;
-            height: 40px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             background: var(--secondary);
-            border: 1px solid var(--primary);
+            border: 2px solid var(--primary);
             color: var(--text);
-            font-size: 20px;
+            font-size: 22px;
             cursor: pointer;
             transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 0;
+            box-shadow: 0 0 0 2px rgba(51, 144, 236, 0.2);
         }
 
         .profile-btn:hover {
@@ -385,7 +391,7 @@
                 <h1 class="header-title">Pulse Traders</h1>
             </div>
             <div class="header-right" id="authButtons">
-                <a href="/auth.html" class="btn-header">🔐 Войти</a>
+                <a href="/login" class="btn-header">🔐 Войти</a>
             </div>
         </div>
 

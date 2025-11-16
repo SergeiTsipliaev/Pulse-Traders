@@ -2,6 +2,7 @@
 // На всех экранах свечи выглядят одинаково, просто видно разное количество
 
 const API_URL = '/api';
+let authToken = null;
 let priceChart = null;
 let predictionChart = null;
 let currentCryptoData = null;
@@ -12,6 +13,9 @@ let chartType = 'line';
 let currentKlines = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Получаем токен из localStorage
+    authToken = localStorage.getItem('auth_token');
+
     const urlParams = new URLSearchParams(window.location.search);
     const symbol = urlParams.get('symbol');
 
@@ -24,6 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadCryptoData(symbol);
     setupEventListeners();
     setupTimeframeMenu();
+    setupModal();
 });
 
 function setupTimeframeMenu() {
@@ -80,6 +85,17 @@ async function loadCryptoData(symbol) {
 
     try {
         const response = await fetch(`${API_URL}/crypto/${symbol}`);
+
+        if (response.status === 404) {
+            showModal(
+                'Криптовалюта не найдена',
+                `Криптовалюта ${symbol} не найдена на бирже или не поддерживается. Попробуйте выбрать другую.`,
+                '❌'
+            );
+            setTimeout(() => window.history.back(), 2000);
+            return;
+        }
+
         const data = await response.json();
 
         if (data.success) {
@@ -90,11 +106,19 @@ async function loadCryptoData(symbol) {
                 updatePriceRealtime(symbol);
             }, 10000);
         } else {
-            alert('Ошибка: ' + (data.error || 'Unknown error'));
+            showModal(
+                'Ошибка загрузки',
+                data.error || 'Не удалось загрузить данные криптовалюты.',
+                '❌'
+            );
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Ошибка подключения');
+        showModal(
+            'Ошибка подключения',
+            'Не удалось подключиться к серверу. Проверьте соединение с интернетом.',
+            '📡'
+        );
     } finally {
         hideLoading();
     }
@@ -150,13 +174,22 @@ async function displayCryptoData(data) {
 
     loadKlines(data.symbol, currentTimeframe);
 
-    if (data.logo) {
-        document.getElementById('cryptoLogo').src = data.logo;
-        document.getElementById('cryptoLogo').onerror = function() {
-            // Fallback на эмодзи если логотип не загрузился
-            this.style.display = 'none';
-        };
-    }
+    const symbol_clean = data.symbol.replace('USDT', '');
+    const circleEl = document.getElementById('cryptoCircle');
+
+    // Для всех криптовалют показываем объемный темно-фиолетовый кружок
+    circleEl.textContent = symbol_clean.charAt(0);
+
+    // Темно-фиолетовый градиент для объема
+    circleEl.style.background = 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)';
+
+    // 3D эффект с тенями
+    circleEl.style.boxShadow = '0 4px 6px -1px rgba(91, 33, 182, 0.3), 0 2px 4px -1px rgba(91, 33, 182, 0.2), inset 0 -2px 4px rgba(0, 0, 0, 0.1)';
+
+    // Легкая рамка для четкости
+    circleEl.style.border = '2px solid rgba(255, 255, 255, 0.1)';
+
+    circleEl.style.display = 'flex';
 }
 
 
@@ -507,21 +540,45 @@ async function makePrediction() {
     showLoading('Обработка...');
 
     try {
+        const headers = { 'Content-Type': 'application/json' };
+
+        // Добавляем токен если есть
+        if (authToken) {
+            headers['Authorization'] = `Bearer ${authToken}`;
+        }
+
         const response = await fetch(`${API_URL}/predict/${selectedCrypto}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: headers
         });
 
         const data = await response.json();
 
-        if (data.success) {
+        if (response.status === 429) {
+            // Лимит исчерпан
+            const message = data.message || 'Вы исчерпали лимит прогнозов. Купите подписку для продолжения.';
+            showModal(
+                '⚠️ Лимит исчерпан',
+                `<p>${message}</p><p style="margin-top: 12px; font-size: 13px;">Обновите подписку для получения дополнительных прогнозов.</p>`,
+                '',
+                true // Показываем кнопку обновления подписки
+            );
+        } else if (data.success) {
             displayPrediction(data.data);
         } else {
-            alert('Ошибка: ' + (data.error || 'Unknown error'));
+            showModal(
+                'Ошибка',
+                data.error || 'Произошла неизвестная ошибка. Попробуйте еще раз.',
+                '❌'
+            );
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Ошибка подключения');
+        showModal(
+            'Ошибка подключения',
+            'Не удалось подключиться к серверу. Проверьте соединение с интернетом.',
+            '📡'
+        );
     } finally {
         hideLoading();
         btn.disabled = false;
@@ -793,4 +850,65 @@ function formatNumber(num) {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toFixed(0);
+}
+
+// ==================== МОДАЛЬНОЕ ОКНО ====================
+
+function setupModal() {
+    const modalOverlay = document.getElementById('modalOverlay');
+
+    // Закрытие по клику на оверлей
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+            hideModal();
+        }
+    });
+
+    // Используем делегирование событий для кнопок
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal-btn-close')) {
+            hideModal();
+        }
+        if (e.target.classList.contains('modal-btn-upgrade')) {
+            window.location.href = '/dashboard';
+        }
+    });
+}
+
+function showModal(title, message, icon = '⚠️', showUpgradeBtn = false) {
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalIcon = document.getElementById('modalIcon');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    const modalFooter = document.querySelector('.modal-footer');
+
+    if (!modalOverlay || !modalIcon || !modalTitle || !modalBody || !modalFooter) {
+        console.error('Modal elements not found');
+        return;
+    }
+
+    modalIcon.textContent = icon;
+    modalTitle.textContent = title;
+    modalBody.innerHTML = message;
+
+    // Если нужна кнопка обновления подписки
+    if (showUpgradeBtn) {
+        modalFooter.innerHTML = `
+            <button class="modal-btn modal-btn-secondary modal-btn-close">Закрыть</button>
+            <button class="modal-btn modal-btn-primary modal-btn-upgrade">Купить подписку</button>
+        `;
+    } else {
+        modalFooter.innerHTML = `
+            <button class="modal-btn modal-btn-primary modal-btn-close">Закрыть</button>
+        `;
+    }
+
+    modalOverlay.classList.add('show');
+}
+
+function hideModal() {
+    const modalOverlay = document.getElementById('modalOverlay');
+    if (modalOverlay) {
+        modalOverlay.classList.remove('show');
+    }
 }

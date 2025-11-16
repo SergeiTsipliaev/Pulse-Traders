@@ -70,8 +70,7 @@ async def send_email(to_email: str, subject: str, html_content: str):
 
         msg.attach(MIMEText(html_content, 'html', 'utf-8'))
 
-        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-        server.starttls()
+        server = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT)
         server.login(SMTP_USER, SMTP_PASSWORD)
         server.send_message(msg)
         server.quit()
@@ -131,15 +130,16 @@ def generate_verification_code() -> str:
 async def save_verification_code(db, email: str, code: str):
     """Сохранить код верификации"""
     try:
-        await db.execute("""
-            DELETE FROM email_verifications 
-            WHERE email = %s
-        """, email)
+        async with db.pool.acquire() as conn:
+            await conn.execute("""
+                DELETE FROM email_verifications
+                WHERE email = $1
+            """, email)
 
-        await db.execute("""
-            INSERT INTO email_verifications (email, code, expires_at)
-            VALUES (%s, %s, %s)
-        """, email, code, datetime.utcnow() + timedelta(minutes=15))
+            await conn.execute("""
+                INSERT INTO email_verifications (email, code, expires_at)
+                VALUES ($1, $2, $3)
+            """, email, code, datetime.utcnow() + timedelta(minutes=15))
 
         return True
     except Exception as e:
@@ -149,15 +149,16 @@ async def save_verification_code(db, email: str, code: str):
 async def verify_email_code(db, email: str, code: str) -> bool:
     """Проверить код верификации"""
     try:
-        result = await db.fetch_one("""
-            SELECT * FROM email_verifications 
-            WHERE email = %s AND code = %s AND expires_at > %s
-        """, email, code, datetime.utcnow())
+        async with db.pool.acquire() as conn:
+            result = await conn.fetchrow("""
+                SELECT * FROM email_verifications
+                WHERE email = $1 AND code = $2 AND expires_at > $3
+            """, email, code, datetime.utcnow())
 
-        if result:
-            await db.execute("DELETE FROM email_verifications WHERE email = %s", email)
-            return True
-        return False
+            if result:
+                await conn.execute("DELETE FROM email_verifications WHERE email = $1", email)
+                return True
+            return False
     except Exception as e:
         logger.error(f"Ошибка проверки кода: {e}")
         return False
@@ -172,32 +173,43 @@ async def register(request: Request, body: RegisterRequest):
         raise HTTPException(status_code=503, detail="Database unavailable")
 
     try:
-        existing_user = await db.fetch_one(
-            "SELECT id FROM users WHERE email = %s",
-            request.email
-        )
-
-        if existing_user:
-            return JSONResponse(
-                status_code=400,
-                content={'success': False, 'error': 'Этот email уже зарегистрирован'}
+        async with db.pool.acquire() as conn:
+            existing_user = await conn.fetchrow(
+                "SELECT id FROM users WHERE email = $1",
+                body.email
             )
 
-        hashed_password = hash_password(request.password)
+            if existing_user:
+                return JSONResponse(
+                    status_code=400,
+                    content={'success': False, 'error': 'Этот email уже зарегистрирован'}
+                )
 
-        user = await db.execute("""
-            INSERT INTO users (email, password_hash, first_name, is_active)
-            VALUES (%s, %s, %s, FALSE)
-            RETURNING id, email
-        """, request.email, hashed_password, request.name)
+            hashed_password = hash_password(body.password)
 
-        if not user:
-            raise HTTPException(status_code=400, detail="Failed to create user")
+            # Создаем пользователя с уникальным telegram_id (используем email hash)
+            import hashlib
+            telegram_id = int(hashlib.sha256(body.email.encode()).hexdigest()[:15], 16)
 
-        user_id = user[0][0]
+            user = await conn.fetchrow("""
+                INSERT INTO users (telegram_id, email, password_hash, first_name, is_active)
+                VALUES ($1, $2, $3, $4, FALSE)
+                RETURNING id, email
+            """, telegram_id, body.email, hashed_password, body.name)
 
-        code = generate_verification_code()
-        await save_verification_code(db, request.email, code)
+            if not user:
+                raise HTTPException(status_code=400, detail="Failed to create user")
+
+            user_id = user['id']
+
+            # Создаем лимиты для нового пользователя
+            await conn.execute("""
+                INSERT INTO prediction_limits (user_id, predictions_limit_daily, predictions_limit_monthly)
+                VALUES ($1, 5, 5)
+            """, user_id)
+
+            code = generate_verification_code()
+            await save_verification_code(db, body.email, code)
 
         html_content = f"""
         <html>
@@ -212,9 +224,9 @@ async def register(request: Request, body: RegisterRequest):
         </html>
         """
 
-        await send_email(request.email, "Подтверждение email", html_content)
+        await send_email(body.email, "Подтверждение email", html_content)
 
-        logger.info(f"✅ Регистрация: {request.email}")
+        logger.info(f"✅ Регистрация: {body.email}")
 
         return JSONResponse({
             'success': True,
@@ -243,21 +255,22 @@ async def verify_email(request: Request, body: VerifyEmailRequest):
                 content={'success': False, 'error': 'Неверный или истекший код'}
             )
 
-        user = await db.fetch_one(
-            "SELECT id FROM users WHERE email = %s",
-            body.email
-        )
+        async with db.pool.acquire() as conn:
+            user = await conn.fetchrow(
+                "SELECT id FROM users WHERE email = $1",
+                body.email
+            )
 
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
 
-        user_id = user[0]
+            user_id = user['id']
 
-        await db.execute(
-            "UPDATE users SET is_active = TRUE, verified_at = %s WHERE id = %s",
-            datetime.utcnow(),
-            user_id
-        )
+            await conn.execute(
+                "UPDATE users SET is_active = TRUE, verified_at = $1 WHERE id = $2",
+                datetime.utcnow(),
+                user_id
+            )
 
         token = create_jwt_token(user_id, body.email)
 
@@ -283,38 +296,41 @@ async def login(request: Request, body: LoginRequest):
         raise HTTPException(status_code=503, detail="Database unavailable")
 
     try:
-        user = await db.fetch_one(
-            "SELECT id, password_hash, is_active FROM users WHERE email = %s",
-            body.email
-        )
-
-        if not user:
-            return JSONResponse(
-                status_code=401,
-                content={'success': False, 'error': 'Email или пароль неверны'}
+        async with db.pool.acquire() as conn:
+            user = await conn.fetchrow(
+                "SELECT id, password_hash, is_active FROM users WHERE email = $1",
+                body.email
             )
 
-        user_id, password_hash, is_active = user
+            if not user:
+                return JSONResponse(
+                    status_code=401,
+                    content={'success': False, 'error': 'Email или пароль неверны'}
+                )
 
-        if not verify_password(body.password, password_hash):
-            return JSONResponse(
-                status_code=401,
-                content={'success': False, 'error': 'Email или пароль неверны'}
+            user_id = user['id']
+            password_hash = user['password_hash']
+            is_active = user['is_active']
+
+            if not verify_password(body.password, password_hash):
+                return JSONResponse(
+                    status_code=401,
+                    content={'success': False, 'error': 'Email или пароль неверны'}
+                )
+
+            if not is_active:
+                return JSONResponse(
+                    status_code=403,
+                    content={'success': False, 'error': 'Email не подтвержден'}
+                )
+
+            token = create_jwt_token(user_id, body.email)
+
+            await conn.execute(
+                "UPDATE users SET last_active = $1 WHERE id = $2",
+                datetime.utcnow(),
+                user_id
             )
-
-        if not is_active:
-            return JSONResponse(
-                status_code=403,
-                content={'success': False, 'error': 'Email не подтвержден'}
-            )
-
-        token = create_jwt_token(user_id, body.email)
-
-        await db.execute(
-            "UPDATE users SET last_active = %s WHERE id = %s",
-            datetime.utcnow(),
-            user_id
-        )
 
         logger.info(f"✅ Успешный вход: {body.email}")
 
@@ -365,9 +381,51 @@ async def google_login(request: Request, body: GoogleTokenRequest):
         idinfo = response.json()
         logger.info(f"Token info: {idinfo}")
 
+        # Декодируем id_token для получения полной информации, включая фото
+        import jwt
+        import os
+        from pathlib import Path
+
+        try:
+            # Декодируем id_token без верификации (уже верифицирован через tokeninfo)
+            decoded_token = jwt.decode(body.token, options={"verify_signature": False})
+            logger.info(f"Decoded token: {decoded_token}")
+            google_avatar_url = decoded_token.get('picture', None)
+        except Exception as e:
+            logger.error(f"Error decoding id_token: {e}")
+            google_avatar_url = None
+
         email = idinfo.get('email')
-        name = idinfo.get('name', email.split('@')[0] if email else 'User')
+        name = decoded_token.get('name') if 'decoded_token' in locals() else idinfo.get('name', email.split('@')[0] if email else 'User')
         google_id = str(idinfo.get('user_id')) if idinfo.get('user_id') else None
+
+        # Скачиваем и сохраняем аватар локально
+        avatar_url = None
+        if google_avatar_url:
+            try:
+                # Скачиваем изображение
+                img_response = req.get(google_avatar_url, timeout=10)
+                if img_response.status_code == 200:
+                    # Создаем директорию если не существует
+                    avatars_dir = Path("static/avatars")
+                    avatars_dir.mkdir(exist_ok=True)
+
+                    # Сохраняем с именем google_id
+                    file_extension = 'jpg'  # Google обычно возвращает JPG
+                    filename = f"{google_id}.{file_extension}"
+                    filepath = avatars_dir / filename
+
+                    with open(filepath, 'wb') as f:
+                        f.write(img_response.content)
+
+                    # Сохраняем относительный путь
+                    avatar_url = f"/static/avatars/{filename}"
+                    logger.info(f"✅ Avatar saved: {avatar_url}")
+                else:
+                    logger.warning(f"Failed to download avatar: {img_response.status_code}")
+            except Exception as e:
+                logger.error(f"Error downloading avatar: {e}")
+                avatar_url = None
 
         if not email:
             return JSONResponse(
@@ -386,18 +444,25 @@ async def google_login(request: Request, body: GoogleTokenRequest):
                 user_id = user['id']
             else:
                 user = await conn.fetchrow("""
-                    INSERT INTO users (email, first_name, google_id, is_active, verified_at)
-                    VALUES ($1, $2, $3, TRUE, CURRENT_TIMESTAMP)
+                    INSERT INTO users (email, first_name, google_id, avatar_url, is_active, verified_at)
+                    VALUES ($1, $2, $3, $4, TRUE, CURRENT_TIMESTAMP)
                     RETURNING id
-                """, email, name, google_id)
+                """, email, name, google_id, avatar_url)
 
                 user_id = user['id']
+
+                # Создаем лимиты для нового пользователя
+                await conn.execute("""
+                    INSERT INTO prediction_limits (user_id, predictions_limit_daily, predictions_limit_monthly)
+                    VALUES ($1, 5, 5)
+                """, user_id)
 
             token = create_jwt_token(user_id, email)
 
             await conn.execute(
-                "UPDATE users SET last_active = CURRENT_TIMESTAMP, google_id = $1 WHERE id = $2",
+                "UPDATE users SET last_active = CURRENT_TIMESTAMP, google_id = $1, avatar_url = $2 WHERE id = $3",
                 google_id,
+                avatar_url,
                 user_id
             )
 
@@ -529,7 +594,7 @@ async def get_me(request: Request):
             raise HTTPException(status_code=503, detail="Database unavailable")
 
         async with db.pool.acquire() as conn:
-            user = await conn.fetchrow("SELECT id, email, first_name FROM users WHERE id = $1", user_id)
+            user = await conn.fetchrow("SELECT id, email, first_name, avatar_url FROM users WHERE id = $1", user_id)
 
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -539,7 +604,8 @@ async def get_me(request: Request):
             'data': {
                 'id': user['id'],
                 'email': user['email'],
-                'username': user['first_name']
+                'username': user['first_name'],
+                'avatar_url': user['avatar_url']
             }
         })
 

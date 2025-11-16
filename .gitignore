@@ -3,4 +3,4 @@
 *.db
 logs/
 __pycache__/
-*.pyc
+*.pycstatic/avatars/

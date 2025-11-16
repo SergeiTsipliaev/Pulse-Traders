@@ -45,6 +45,27 @@ class BybitService:
             logger.error(f"Request error: {e}")
             return None
 
+    async def get_all_available_symbols(self):
+        """Получить список всех доступных символов на Bybit"""
+        try:
+            data = await self.make_request("/v5/market/tickers", {"category": "spot"})
+
+            if not data or 'result' not in data or 'list' not in data['result']:
+                return set()
+
+            symbols = set()
+            for symbol_data in data['result']['list']:
+                symbol = symbol_data.get('symbol', '')
+                if symbol.endswith('USDT'):
+                    symbols.add(symbol)
+
+            logger.info(f"✅ Загружено {len(symbols)} доступных символов с Bybit")
+            return symbols
+
+        except Exception as e:
+            logger.error(f"Error getting available symbols: {e}")
+            return set()
+
     async def search_cryptocurrencies(self, query: str):
         try:
             data = await self.make_request("/v5/market/tickers", {"category": "spot"})

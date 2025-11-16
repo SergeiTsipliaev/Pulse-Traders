@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Pulse Traders</title>
-    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <title>Админ-панель - Pulse Traders</title>
     <style>
         * {
             margin: 0;
@@ -13,133 +12,73 @@
         }
 
         :root {
-            --primary: #3390ec;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --secondary: #3d3a3f;
-            --text: #ffffff;
-            --text-secondary: #b0adb5;
-            --bg: #29262A;
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --bg: #0f1419;
+            --surface: #1a1f2e;
+            --text: #e8e8e8;
+            --text-secondary: #8899a6;
+            --error: #f56565;
+            --success: #48bb78;
+            --warning: #ed8936;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg);
             color: var(--text);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--surface);
             padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 40px;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
         }
 
-        header h1 {
-            font-size: 28px;
-            font-weight: 700;
-        }
-
-        .header-info {
-            display: flex;
-            gap: 30px;
-            align-items: center;
-        }
-
-        .header-stat {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .header-stat-label {
-            font-size: 12px;
-            opacity: 0.9;
-            text-transform: uppercase;
-        }
-
-        .header-stat-value {
+        .header h1 {
             font-size: 24px;
-            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .back-link {
-            display: inline-block;
-            padding: 10px 16px;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.3s;
-        }
-
-        .back-link:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .tabs {
+        .header-actions {
             display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid var(--secondary);
+            gap: 12px;
         }
 
-        .tab {
-            padding: 12px 20px;
-            background: none;
-            color: var(--text-secondary);
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
             border: none;
             cursor: pointer;
             font-size: 14px;
-            font-weight: 600;
-            border-bottom: 3px solid transparent;
             transition: all 0.3s;
         }
 
-        .tab.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
         }
 
-        .tab:hover {
+        .btn-secondary {
+            background: var(--bg);
             color: var(--text);
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .card {
-            background: var(--secondary);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
         }
 
         .stats-grid {
@@ -150,199 +89,126 @@
         }
 
         .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--surface);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .card {
+            background: var(--surface);
             border-radius: 12px;
             padding: 20px;
-            text-align: center;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .stat-card-value {
-            font-size: 32px;
-            font-weight: 700;
-            margin: 10px 0;
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
         }
 
-        .stat-card-label {
-            font-size: 12px;
-            opacity: 0.9;
-            text-transform: uppercase;
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
         }
 
         th {
             text-align: left;
             padding: 12px;
-            border-bottom: 2px solid var(--primary);
-            font-weight: 600;
-            font-size: 12px;
-            text-transform: uppercase;
-            color: var(--primary);
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         td {
             padding: 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         tr:hover {
-            background: rgba(51, 144, 236, 0.08);
+            background: rgba(255, 255, 255, 0.02);
         }
 
         .badge {
-            display: inline-block;
             padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .badge.active {
-            background: var(--success);
-            color: white;
-        }
-
-        .badge.inactive {
-            background: var(--secondary);
-            color: var(--text-secondary);
-        }
-
-        .badge.premium {
-            background: var(--primary);
-            color: white;
-        }
-
-        .badge.free {
-            background: var(--warning);
-            color: white;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 12px;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            font-weight: 600;
-        }
-
-        input, textarea, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            background: #1a1a1a;
-            color: var(--text);
-            font-family: inherit;
-            transition: all 0.3s;
-        }
-
-        input:focus, textarea:focus, select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(51, 144, 236, 0.1);
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 14px;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-            box-shadow: 0 4px 12px rgba(51, 144, 236, 0.3);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(51, 144, 236, 0.4);
-        }
-
-        .btn-primary:active {
-            transform: scale(0.98);
-        }
-
-        .btn-secondary {
-            background: var(--secondary);
-            color: var(--text);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(51, 144, 236, 0.1);
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-        }
-
-        .btn-danger:hover {
-            opacity: 0.8;
-        }
-
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 11px;
-        }
-
-        .users-list {
-            display: grid;
-            gap: 15px;
-        }
-
-        .user-card {
-            background: #1a1a1a;
             border-radius: 12px;
-            padding: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .user-info {
-            flex: 1;
-        }
-
-        .user-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .user-meta {
             font-size: 12px;
-            color: var(--text-secondary);
-            display: flex;
-            gap: 15px;
+            font-weight: 500;
         }
 
-        .user-actions {
-            display: flex;
-            gap: 8px;
+        .badge-admin {
+            background: rgba(102, 126, 234, 0.2);
+            color: var(--primary);
+        }
+
+        .badge-user {
+            background: rgba(136, 153, 166, 0.2);
+            color: var(--text-secondary);
+        }
+
+        .badge-active {
+            background: rgba(72, 187, 120, 0.2);
+            color: var(--success);
+        }
+
+        .badge-inactive {
+            background: rgba(245, 101, 101, 0.2);
+            color: var(--error);
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+            animation: slideIn 0.3s;
+        }
+
+        .alert-error {
+            background: rgba(245, 101, 101, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+        }
+
+        .alert-success {
+            background: rgba(72, 187, 120, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .loading {
@@ -351,195 +217,95 @@
             color: var(--text-secondary);
         }
 
-        .spinner {
-            border: 3px solid var(--secondary);
-            border-top-color: var(--primary);
+        .user-avatar {
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
+            background: rgba(255, 255, 255, 0.1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+            vertical-align: middle;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .action-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
         }
 
-        .alert {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
+        .action-btn-toggle {
+            background: rgba(102, 126, 234, 0.2);
+            color: var(--primary);
         }
 
-        .alert.show {
-            display: block;
-        }
-
-        .alert-success {
-            background: rgba(16, 185, 129, 0.1);
-            border-left: 4px solid var(--success);
-            color: var(--success);
-        }
-
-        .alert-error {
-            background: rgba(239, 68, 68, 0.1);
-            border-left: 4px solid var(--danger);
-            color: var(--danger);
-        }
-
-        @media (max-width: 768px) {
-            header {
-                flex-direction: column;
-                gap: 20px;
-                text-align: center;
-            }
-
-            .header-info {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            table {
-                font-size: 12px;
-            }
-
-            td, th {
-                padding: 8px;
-            }
+        .action-btn-toggle:hover {
+            background: var(--primary);
+            color: white;
         }
     </style>
 </head>
 <body>
+    <div class="header">
+        <h1>🔐 Админ-панель</h1>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="logout()">Выход</button>
+        </div>
+    </div>
+
     <div class="container">
-        <!-- HEADER -->
-        <header>
-            <div>
-                <h1>🔧 Admin Panel</h1>
-                <a href="/" class="back-link">← Вернуться на главную</a>
+        <div id="alert" class="alert"></div>
+
+        <!-- Статистика -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-label">Всего пользователей</div>
+                <div class="stat-value" id="totalUsers">-</div>
             </div>
-            <div class="header-info">
-                <div class="header-stat">
-                    <span class="header-stat-label">Пользователей</span>
-                    <span class="header-stat-value" id="totalUsersHeader">-</span>
-                </div>
-                <div class="header-stat">
-                    <span class="header-stat-label">Активных</span>
-                    <span class="header-stat-value" id="activeUsersHeader">-</span>
-                </div>
-                <div class="header-stat">
-                    <span class="header-stat-label">Premium</span>
-                    <span class="header-stat-value" id="premiumUsersHeader">-</span>
-                </div>
+            <div class="stat-card">
+                <div class="stat-label">Активных пользователей</div>
+                <div class="stat-value" id="activeUsers">-</div>
             </div>
-        </header>
-
-        <!-- ALERT -->
-        <div class="alert" id="alert">
-            <span id="alertText"></span>
-        </div>
-
-        <!-- TABS -->
-        <div class="tabs">
-            <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
-            <button class="tab" data-tab="users">👥 Пользователи</button>
-            <button class="tab" data-tab="subscriptions">💳 Подписки</button>
-        </div>
-
-        <!-- DASHBOARD TAB -->
-        <div id="dashboard" class="tab-content active">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-card-label">Всего пользователей</div>
-                    <div class="stat-card-value" id="totalUsers">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-card-label">Активные (7д)</div>
-                    <div class="stat-card-value" id="activeUsers">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-card-label">Premium подписок</div>
-                    <div class="stat-card-value" id="premiumUsers">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-card-label">Прогнозов всего</div>
-                    <div class="stat-card-value" id="totalPredictions">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-card-label">Доход (USD)</div>
-                    <div class="stat-card-value" id="totalRevenue">$0</div>
-                </div>
+            <div class="stat-card">
+                <div class="stat-label">Администраторов</div>
+                <div class="stat-value" id="adminUsers">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Прогнозов всего</div>
+                <div class="stat-value" id="totalPredictions">-</div>
             </div>
         </div>
 
-        <!-- USERS TAB -->
-        <div id="users" class="tab-content">
-            <div class="card">
-                <div class="card-title">
-                    👥 Список пользователей
-                    <button class="btn-primary btn-small" onclick="loadUsers()">🔄 Обновить</button>
-                </div>
-                <div id="usersLoading" class="loading" style="display: none;">
-                    <div class="spinner"></div>
-                    Загрузка...
-                </div>
-                <div id="usersList"></div>
+        <!-- Пользователи -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Пользователи</div>
+                <button class="btn btn-primary" onclick="loadUsers()">Обновить</button>
             </div>
-        </div>
 
-        <!-- SUBSCRIPTIONS TAB -->
-        <div id="subscriptions" class="tab-content">
-            <div class="card">
-                <div class="card-title">
-                    💳 Управление подписками
-                    <button class="btn-primary btn-small" onclick="showCreateTierForm()">+ Создать тариф</button>
-                </div>
+            <div id="usersLoading" class="loading">
+                Загрузка пользователей...
+            </div>
 
-                <!-- Create Tier Form -->
-                <div id="createTierForm" style="display: none; margin-bottom: 30px;">
-                    <h3 style="margin-bottom: 15px;">Создать новый тариф</h3>
-                    <form onsubmit="handleCreateTier(event)">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Название (техническое)</label>
-                                <input type="text" id="tierName" placeholder="pro, starter, enterprise" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Отображаемое имя</label>
-                                <input type="text" id="tierDisplayName" placeholder="Pro Plan" required>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Цена (USD/месяц)</label>
-                                <input type="number" id="tierPrice" placeholder="9.99" min="0" step="0.01" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Прогнозов в день</label>
-                                <input type="number" id="tierDaily" placeholder="10" min="1" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Прогнозов в месяц</label>
-                                <input type="number" id="tierMonthly" placeholder="300" min="1" required>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Описание</label>
-                            <textarea id="tierDescription" placeholder="Описание тарифа" rows="3"></textarea>
-                        </div>
-                        <div class="form-row">
-                            <button type="submit" class="btn-primary">✅ Создать тариф</button>
-                            <button type="button" class="btn-secondary" onclick="hideCreateTierForm()">❌ Отменить</button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Tiers List -->
-                <div id="tiersList"></div>
+            <div id="usersTable" style="display: none;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Пользователь</th>
+                            <th>Email</th>
+                            <th>Статус</th>
+                            <th>Роль</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

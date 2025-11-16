@@ -3,7 +3,7 @@ from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, W
 from aiogram.filters import Command
 import logging
 
-from config import WEB_APP_URL, ADMIN_IDS
+from config import WEB_APP_URL
 from models.database import Database
 
 logger = logging.getLogger(__name__)
@@ -34,40 +34,17 @@ async def cmd_start(message: Message) -> None:
         )
         logger.info(f"✅ Пользователь {message.from_user.id} зарегистрирован: {user}")
 
-    # Определяем кнопки в зависимости от статуса пользователя
-    is_admin = message.from_user.id in ADMIN_IDS
-
+    # Кнопки бота
     buttons = [
         [InlineKeyboardButton(
             text="📱 Открыть приложение",
             web_app=WebAppInfo(url=WEB_APP_URL)
         )],
-    ]
-
-    # Если админ - добавляем кнопку админ-панели
-    if is_admin:
-        buttons.append([
-            InlineKeyboardButton(
-                text="🔧 Админ-панель",
-                web_app=WebAppInfo(url=f"{WEB_APP_URL}/admin-panel.html")
-            )
-        ])
-
-    # Добавляем кнопку профиля
-    buttons.append([
-        InlineKeyboardButton(
-            text="👤 Мой профиль",
-            web_app=WebAppInfo(url=f"{WEB_APP_URL}/user-profile.html")
-        )
-    ])
-
-    # Кнопка помощи
-    buttons.append([
-        InlineKeyboardButton(
+        [InlineKeyboardButton(
             text="ℹ️ О приложении",
             callback_data="about"
-        )
-    ])
+        )]
+    ]
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -77,13 +54,8 @@ async def cmd_start(message: Message) -> None:
         "🧠 <b>Технология:</b> LSTM нейронная сеть\n"
         "📊 <b>Точность:</b> До 85%\n"
         "⏰ <b>Прогноз:</b> До 7 дней\n\n"
+        "Нажмите кнопку ниже, чтобы открыть приложение:"
     )
-
-    if is_admin:
-        welcome_text += "👑 <b>Статус: Администратор</b>\n"
-        welcome_text += "Вы можете управлять пользователями и тарифами в админ-панели.\n\n"
-
-    welcome_text += "Нажмите кнопку ниже, чтобы открыть приложение:"
 
     await message.answer(
         welcome_text,
@@ -196,14 +168,7 @@ async def cmd_limits(message: Message) -> None:
             limits_text += "⚠️ <b>Месячный лимит исчерпан!</b>\n"
             limits_text += "Купите подписку для продолжения.\n"
 
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(
-                text="💳 Выбрать подписку",
-                web_app=WebAppInfo(url=f"{WEB_APP_URL}/user-profile.html")
-            )]
-        ])
-
-        await message.answer(limits_text, reply_markup=keyboard, parse_mode="HTML")
+        await message.answer(limits_text, parse_mode="HTML")
 
     except Exception as e:
         logger.error(f"Error checking limits: {e}")

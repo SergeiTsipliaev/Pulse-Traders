@@ -1,95 +1,115 @@
-// Получаем user_id из Telegram Web App
-let currentUserId = null;
+let adminToken = null;
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Пытаемся получить ID пользователя из Telegram
-    if (window.Telegram && window.Telegram.WebApp) {
-        const webApp = window.Telegram.WebApp;
-        const initData = webApp.initData;
-        const user = webApp.initDataUnsafe?.user;
-        if (user) {
-            currentUserId = user.id;
-        }
-    }
+document.addEventListener('DOMContentLoaded', async () => {
+    // Проверяем токены (сначала admin_token, потом auth_token)
+    adminToken = localStorage.getItem('admin_token') || localStorage.getItem('auth_token');
 
-    // Проверяем localStorage если Telegram недоступен
-    if (!currentUserId) {
-        currentUserId = localStorage.getItem('userId');
-    }
-
-    if (!currentUserId) {
-        showAlert('❌ Ошибка: не удалось получить ID пользователя', 'error');
+    if (!adminToken) {
+        show404Page();
         return;
     }
 
-    // Настраиваем обработчики вкладок
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            const tabName = tab.dataset.tab;
-            switchTab(tabName);
+    // Проверяем права доступа
+    try {
+        const response = await fetch('/api/admin/stats', {
+            headers: {
+                'Authorization': `Bearer ${adminToken}`
+            }
         });
-    });
+
+        if (response.status === 401 || response.status === 403) {
+            // Нет прав доступа - показываем 404
+            show404Page();
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error('Failed to verify admin rights');
+        }
+    } catch (error) {
+        console.error('Error checking admin rights:', error);
+        show404Page();
+        return;
+    }
 
     // Загружаем данные
-    loadStats();
-    loadUsers();
-    loadTiers();
+    await loadStats();
+    await loadUsers();
 });
 
-function switchTab(tabName) {
-    // Скрываем все вкладки
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-    });
-
-    // Скрываем все кнопки вкладок
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-
-    // Показываем выбранную вкладку
-    const content = document.getElementById(tabName);
-    if (content) {
-        content.classList.add('active');
-    }
-
-    // Выделяем кнопку вкладки
-    document.querySelector(`[data-tab="${tabName}"]`)?.classList.add('active');
-
-    // Загружаем данные для вкладки
-    if (tabName === 'dashboard') {
-        loadStats();
-    } else if (tabName === 'users') {
-        loadUsers();
-    } else if (tabName === 'subscriptions') {
-        loadTiers();
-    }
+function show404Page() {
+    document.body.innerHTML = `
+        <div style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #e8e8e8;
+        ">
+            <div style="
+                background: #1a1f2e;
+                border-radius: 20px;
+                padding: 60px 40px;
+                text-align: center;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+                max-width: 500px;
+            ">
+                <h1 style="
+                    font-size: 72px;
+                    margin: 0 0 20px 0;
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                ">404</h1>
+                <h2 style="
+                    font-size: 24px;
+                    margin: 0 0 16px 0;
+                    color: #e8e8e8;
+                ">Страница не найдена</h2>
+                <p style="
+                    color: #8899a6;
+                    margin: 0 0 30px 0;
+                    font-size: 16px;
+                ">У вас нет доступа к этой странице</p>
+                <a href="/" style="
+                    display: inline-block;
+                    padding: 14px 32px;
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 10px;
+                    font-weight: 600;
+                    transition: transform 0.3s;
+                " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    Вернуться на главную
+                </a>
+            </div>
+        </div>
+    `;
 }
 
 async function loadStats() {
     try {
         const response = await fetch('/api/admin/stats', {
             headers: {
-                'x-user-id': currentUserId
+                'Authorization': `Bearer ${adminToken}`
             }
         });
+
+        if (!response.ok) {
+            throw new Error('Failed to load stats');
+        }
 
         const data = await response.json();
 
         if (data.success && data.data) {
-            const stats = data.data;
-
-            // Обновляем header
-            document.getElementById('totalUsersHeader').textContent = stats.total_users;
-            document.getElementById('activeUsersHeader').textContent = stats.active_users;
-            document.getElementById('premiumUsersHeader').textContent = stats.premium_users;
-
-            // Обновляем dashboard
-            document.getElementById('totalUsers').textContent = stats.total_users;
-            document.getElementById('activeUsers').textContent = stats.active_users;
-            document.getElementById('premiumUsers').textContent = stats.premium_users;
-            document.getElementById('totalPredictions').textContent = stats.total_predictions;
-            document.getElementById('totalRevenue').textContent = `$${stats.total_revenue.toFixed(2)}`;
+            document.getElementById('totalUsers').textContent = data.data.total_users || 0;
+            document.getElementById('activeUsers').textContent = data.data.active_users || 0;
+            document.getElementById('adminUsers').textContent = data.data.admin_users || 0;
+            document.getElementById('totalPredictions').textContent = data.data.total_predictions || 0;
         }
     } catch (error) {
         console.error('Error loading stats:', error);
@@ -97,278 +117,117 @@ async function loadStats() {
     }
 }
 
-async function loadUsers(page = 0) {
-    const limit = 20;
-    const offset = page * limit;
-
-    document.getElementById('usersLoading').style.display = 'block';
-
+async function loadUsers() {
     try {
-        const response = await fetch(`/api/admin/users?limit=${limit}&offset=${offset}`, {
+        document.getElementById('usersLoading').style.display = 'block';
+        document.getElementById('usersTable').style.display = 'none';
+
+        const response = await fetch('/api/admin/users?limit=100', {
             headers: {
-                'x-user-id': currentUserId
+                'Authorization': `Bearer ${adminToken}`
             }
         });
+
+        if (!response.ok) {
+            throw new Error('Failed to load users');
+        }
 
         const data = await response.json();
 
         if (data.success && data.data) {
-            displayUsers(data.data);
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+
+            data.data.forEach(user => {
+                const row = document.createElement('tr');
+
+                const fullName = [user.first_name, user.last_name]
+                    .filter(n => n && n !== 'null')
+                    .join(' ') || 'Не указано';
+
+                const email = user.email && user.email !== 'null' ? user.email : '—';
+                const isActive = user.is_active;
+                const isAdmin = user.is_admin;
+
+                row.innerHTML = `
+                    <td>#${user.id}</td>
+                    <td>
+                        <div class="user-avatar">👤</div>
+                        ${fullName}
+                    </td>
+                    <td>${email}</td>
+                    <td>
+                        <span class="badge ${isActive ? 'badge-active' : 'badge-inactive'}">
+                            ${isActive ? 'Активен' : 'Неактивен'}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge ${isAdmin ? 'badge-admin' : 'badge-user'}">
+                            ${isAdmin ? 'Администратор' : 'Пользователь'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="action-btn action-btn-toggle" onclick="toggleAdmin(${user.id}, ${isAdmin})">
+                            ${isAdmin ? 'Отозвать права' : 'Выдать права'}
+                        </button>
+                    </td>
+                `;
+
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('usersLoading').style.display = 'none';
+            document.getElementById('usersTable').style.display = 'block';
         }
     } catch (error) {
         console.error('Error loading users:', error);
         showAlert('❌ Ошибка загрузки пользователей', 'error');
-    } finally {
         document.getElementById('usersLoading').style.display = 'none';
     }
 }
 
-function displayUsers(users) {
-    const container = document.getElementById('usersList');
-
-    if (users.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Пользователей не найдено</p>';
+async function toggleAdmin(userId, currentIsAdmin) {
+    if (!confirm(`Вы уверены, что хотите ${currentIsAdmin ? 'отозвать' : 'выдать'} права администратора?`)) {
         return;
     }
 
-    container.innerHTML = users.map(user => `
-        <div class="user-card">
-            <div class="user-info">
-                <div class="user-name">
-                    ${user.first_name || ''} ${user.last_name || ''}
-                    <span style="color: var(--text-secondary);">@${user.username || 'unknown'}</span>
-                </div>
-                <div class="user-meta">
-                    <span>ID: ${user.telegram_id}</span>
-                    <span>Присоединился: ${new Date(user.created_at).toLocaleDateString()}</span>
-                    <span>Прогнозов: ${user.predictions_used_month || 0}/${user.predictions_limit_monthly || 'N/A'}</span>
-                    ${user.subscription_tier ? `<span class="badge premium">${user.subscription_tier}</span>` : '<span class="badge free">Бесплатный</span>'}
-                    ${user.is_admin ? '<span class="badge" style="background: #8b5cf6;">Admin</span>' : ''}
-                </div>
-            </div>
-            <div class="user-actions">
-                ${user.is_admin ? '' : `
-                    <button class="btn-secondary btn-small" onclick="makeAdmin(${user.id})">👑 Admin</button>
-                `}
-                ${user.is_banned ? `
-                    <button class="btn-secondary btn-small" onclick="unbanUser(${user.id})">✅ Разбан</button>
-                ` : `
-                    <button class="btn-danger btn-small" onclick="banUser(${user.id})">🚫 Бан</button>
-                `}
-                <button class="btn-primary btn-small" onclick="viewUser(${user.id})">👁️ Смотреть</button>
-            </div>
-        </div>
-    `).join('');
-}
-
-async function loadTiers() {
     try {
-        const response = await fetch('/api/admin/tiers', {
+        const response = await fetch(`/api/admin/users/${userId}/toggle-admin`, {
+            method: 'POST',
             headers: {
-                'x-user-id': currentUserId
+                'Authorization': `Bearer ${adminToken}`
             }
         });
 
         const data = await response.json();
 
-        if (data.success && data.data) {
-            displayTiers(data.data);
-        }
-    } catch (error) {
-        console.error('Error loading tiers:', error);
-        showAlert('❌ Ошибка загрузки тарифов', 'error');
-    }
-}
-
-function displayTiers(tiers) {
-    const container = document.getElementById('tiersList');
-
-    if (tiers.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Тарифов не найдено</p>';
-        return;
-    }
-
-    container.innerHTML = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Название</th>
-                    <th>Цена</th>
-                    <th>В день</th>
-                    <th>В месяц</th>
-                    <th>Статус</th>
-                    <th>Действие</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${tiers.map(tier => `
-                    <tr>
-                        <td>
-                            <strong>${tier.display_name}</strong>
-                            <div style="font-size: 11px; color: var(--text-secondary);">${tier.description || ''}</div>
-                        </td>
-                        <td>$${tier.price}</td>
-                        <td>${tier.daily_predictions}</td>
-                        <td>${tier.monthly_predictions}</td>
-                        <td>
-                            ${tier.is_active ?
-                                '<span class="badge active">Активный</span>' :
-                                '<span class="badge inactive">Неактивный</span>'
-                            }
-                        </td>
-                        <td>
-                            <button class="btn-secondary btn-small" onclick="editTier(${tier.id})">✏️ Редак.</button>
-                        </td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    `;
-}
-
-function showCreateTierForm() {
-    document.getElementById('createTierForm').style.display = 'block';
-}
-
-function hideCreateTierForm() {
-    document.getElementById('createTierForm').style.display = 'none';
-}
-
-async function handleCreateTier(event) {
-    event.preventDefault();
-
-    const tierData = {
-        name: document.getElementById('tierName').value,
-        display_name: document.getElementById('tierDisplayName').value,
-        price: parseFloat(document.getElementById('tierPrice').value),
-        monthly_predictions: parseInt(document.getElementById('tierMonthly').value),
-        daily_predictions: parseInt(document.getElementById('tierDaily').value),
-        description: document.getElementById('tierDescription').value
-    };
-
-    try {
-        const response = await fetch('/api/admin/tiers', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': currentUserId
-            },
-            body: JSON.stringify(tierData)
-        });
-
-        const data = await response.json();
-
         if (data.success) {
-            showAlert('✅ Тариф создан успешно', 'success');
-            hideCreateTierForm();
-            event.target.reset();
-            loadTiers();
+            showAlert(`✅ ${data.message}`, 'success');
+            await loadUsers();
+            await loadStats();
         } else {
-            showAlert(`❌ ${data.error || 'Ошибка создания тарифа'}`, 'error');
+            showAlert('❌ Ошибка: ' + (data.error || 'Неизвестная ошибка'), 'error');
         }
     } catch (error) {
-        console.error('Error:', error);
-        showAlert('❌ Ошибка создания тарифа', 'error');
+        console.error('Error toggling admin:', error);
+        showAlert('❌ Ошибка изменения прав', 'error');
     }
 }
 
-async function makeAdmin(userId) {
-    if (!confirm('Сделать пользователя администратором?')) return;
-
-    try {
-        const response = await fetch(`/api/admin/users/${userId}/status`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': currentUserId
-            },
-            body: JSON.stringify({ is_admin: true })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showAlert('✅ Пользователь - администратор', 'success');
-            loadUsers();
-        } else {
-            showAlert('❌ Ошибка обновления статуса', 'error');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        showAlert('❌ Ошибка', 'error');
+function logout() {
+    if (confirm('Вы уверены, что хотите выйти?')) {
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('auth_token');
+        window.location.href = '/';
     }
 }
 
-async function banUser(userId) {
-    if (!confirm('Забанить пользователя?')) return;
-
-    try {
-        const response = await fetch(`/api/admin/users/${userId}/status`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': currentUserId
-            },
-            body: JSON.stringify({ is_banned: true })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showAlert('✅ Пользователь забанен', 'success');
-            loadUsers();
-        } else {
-            showAlert('❌ Ошибка бана', 'error');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        showAlert('❌ Ошибка', 'error');
-    }
-}
-
-async function unbanUser(userId) {
-    if (!confirm('Разбанить пользователя?')) return;
-
-    try {
-        const response = await fetch(`/api/admin/users/${userId}/status`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': currentUserId
-            },
-            body: JSON.stringify({ is_banned: false })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showAlert('✅ Пользователь разбанен', 'success');
-            loadUsers();
-        } else {
-            showAlert('❌ Ошибка разбана', 'error');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        showAlert('❌ Ошибка', 'error');
-    }
-}
-
-function viewUser(userId) {
-    alert(`Просмотр пользователя ${userId} - функция в разработке`);
-}
-
-function editTier(tierId) {
-    alert(`Редактирование тарифа ${tierId} - функция в разработке`);
-}
-
-function showAlert(message, type = 'success') {
-    const alertEl = document.getElementById('alert');
-    const alertText = document.getElementById('alertText');
-
-    alertText.textContent = message;
-    alertEl.className = `alert show alert-${type}`;
+function showAlert(message, type) {
+    const alert = document.getElementById('alert');
+    alert.textContent = message;
+    alert.className = `alert alert-${type} show`;
 
     setTimeout(() => {
-        alertEl.classList.remove('show');
+        alert.classList.remove('show');
     }, 4000);
 }

@@ -31,9 +31,10 @@ from json import JSONEncoder
 # Глобальная переменная БД
 db: Optional[Database] = None
 
-# 🪙 Глобальный кэш криптовалют из JSON
-CRYPTOS_DATA = {}
-CRYPTOS_FILE = Path('data/cryptos.json')
+# 🎯 Кэш доступных символов Bybit (обновляется каждые 10 минут)
+BYBIT_AVAILABLE_SYMBOLS = set()
+BYBIT_SYMBOLS_LAST_UPDATE = 0
+BYBIT_SYMBOLS_TTL = 600  # 10 минут
 
 logging.basicConfig(
     level=logging.INFO,
@@ -44,30 +45,34 @@ logger = logging.getLogger(__name__)
 cache = {}
 
 
-# ==================== НОВЫЕ ФУНКЦИИ ДЛЯ JSON КЭША ====================
+# ==================== BYBIT API ФУНКЦИИ ====================
 
-async def load_cryptos_from_file():
-    """Загружает список всех криптовалют из JSON файла при старте приложения"""
-    global CRYPTOS_DATA
+
+async def update_bybit_available_symbols():
+    """Обновить список доступных символов на Bybit"""
+    global BYBIT_AVAILABLE_SYMBOLS, BYBIT_SYMBOLS_LAST_UPDATE
+
+    current_time = time.time()
+
+    # Проверяем, нужно ли обновлять кэш
+    if BYBIT_AVAILABLE_SYMBOLS and (current_time - BYBIT_SYMBOLS_LAST_UPDATE) < BYBIT_SYMBOLS_TTL:
+        return BYBIT_AVAILABLE_SYMBOLS
 
     try:
-        if CRYPTOS_FILE.exists():
-            with open(CRYPTOS_FILE, 'r', encoding='utf-8') as f:
-                CRYPTOS_DATA = json.load(f)
-            logger.info(f"✅ Загружено {len(CRYPTOS_DATA)} криптовалют из {CRYPTOS_FILE}")
-            return True
-        else:
-            logger.warning(f"⚠️ Файл {CRYPTOS_FILE} не найден")
-            return False
-
+        symbols = await bybit_service.get_all_available_symbols()
+        if symbols:
+            BYBIT_AVAILABLE_SYMBOLS = symbols
+            BYBIT_SYMBOLS_LAST_UPDATE = current_time
+            logger.info(f"✅ Обновлен кэш Bybit символов: {len(symbols)} монет")
+        return BYBIT_AVAILABLE_SYMBOLS
     except Exception as e:
-        logger.error(f"❌ Ошибка загрузки криптовалют: {e}")
-        return False
+        logger.error(f"Ошибка обновления списка Bybit символов: {e}")
+        return BYBIT_AVAILABLE_SYMBOLS
 
 
 def get_crypto_logo_from_config(symbol: str):
-    """Получить логотип криптовалюты - сначала конфиг, потом JSON"""
-    # 1️⃣ Сначала ищем в конфиге
+    """Получить логотип криптовалюты из популярных"""
+    # Ищем только в популярных криптовалютах
     for crypto in POPULAR_CRYPTOS:
         if crypto['symbol'] == symbol:
             return {
@@ -78,20 +83,15 @@ def get_crypto_logo_from_config(symbol: str):
                 'source': 'config'
             }
 
-    # 2️⃣ ДЛЯ ОСТАЛЬНЫХ - ищем в JSON кэше
+    # Для непопулярных НЕ генерируем URL - будет цветной кружок
     symbol_clean = symbol.replace('USDT', '').upper()
-
-    if symbol_clean in CRYPTOS_DATA:
-        crypto_data = CRYPTOS_DATA[symbol_clean]
-        return {
-            'logo': crypto_data.get('logo', ''),
-            'emoji': '💰',
-            'name': crypto_data.get('name', symbol_clean),
-            'display_name': symbol_clean,
-            'source': 'json_cache'
-        }
-
-    return None
+    return {
+        'logo': '',  # Пустой логотип - на фронте будет кружок
+        'emoji': '💰',
+        'name': symbol_clean,
+        'display_name': symbol_clean,
+        'source': 'default'
+    }
 
 
 # ==================== LIFESPAN ====================
@@ -103,10 +103,9 @@ async def lifespan(app: FastAPI):
 
     logger.info("🚀 Запуск приложения...")
 
-    # ✨ Загружаем JSON с криптовалютами
-    logger.info("📥 Загружаем список криптовалют из JSON...")
-    if not await load_cryptos_from_file():
-        logger.warning("⚠️ Не удалось загрузить крипто, будет использоваться дефолт")
+    # 🎯 Загружаем доступные символы с Bybit (используем вместо локального JSON)
+    logger.info("🎯 Загружаем доступные символы с Bybit...")
+    await update_bybit_available_symbols()
 
     # Подключаемся к БД
     db = Database(DATABASE_URL)
@@ -308,11 +307,51 @@ async def get_current_user(authorization: str = Header(None), db=None):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get('/auth.html')
-async def auth_page():
-    """Страница авторизации"""
+@app.get('/login')
+async def login_page():
+    """Страница авторизации (чистый URL)"""
     try:
         return FileResponse("static/auth.html", media_type="text/html")
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return JSONResponse(status_code=500, content={"error": "Error loading page"})
+
+
+@app.get('/auth.html')
+async def auth_page():
+    """Страница авторизации (старый URL для совместимости)"""
+    try:
+        return FileResponse("static/auth.html", media_type="text/html")
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return JSONResponse(status_code=500, content={"error": "Error loading page"})
+
+
+@app.get('/admin')
+async def admin_page():
+    """Страница входа в админ-панель с проверкой прав на фронтенде"""
+    try:
+        return FileResponse("static/admin-login.html", media_type="text/html")
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return JSONResponse(status_code=500, content={"error": "Error loading page"})
+
+
+@app.get('/admin-login')
+async def admin_login_clean():
+    """Страница входа в админ-панель (чистый URL)"""
+    try:
+        return FileResponse("static/admin-login.html", media_type="text/html")
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return JSONResponse(status_code=500, content={"error": "Error loading page"})
+
+
+@app.get('/admin-login.html')
+async def admin_login_page():
+    """Страница входа в админ-панель (старый URL для совместимости)"""
+    try:
+        return FileResponse("static/admin-login.html", media_type="text/html")
     except Exception as e:
         logger.error(f"Error: {e}")
         return JSONResponse(status_code=500, content={"error": "Error loading page"})
@@ -388,7 +427,7 @@ async def auth_redirect_handler():
                     const errorMsg = decodeURIComponent(error);
                     messageEl.textContent = 'Ошибка авторизации';
                     statusEl.innerHTML = `<div class="error"><strong>Ошибка:</strong> ${errorMsg}</div>`;
-                    setTimeout(() => { window.location.href = '/auth.html'; }, 3000);
+                    setTimeout(() => { window.location.href = '/login'; }, 3000);
                     return;
                 }
 
@@ -405,7 +444,7 @@ async def auth_redirect_handler():
 
                 messageEl.textContent = 'Нет данных авторизации';
                 statusEl.innerHTML = '<div class="error">Параметры авторизации не найдены</div>';
-                setTimeout(() => { window.location.href = '/auth.html'; }, 2000);
+                setTimeout(() => { window.location.href = '/login'; }, 2000);
             }
 
             window.addEventListener('DOMContentLoaded', handleAuthRedirect);
@@ -446,9 +485,9 @@ async def auth_privacy():
         return JSONResponse(status_code=500, content={"error": "Error loading page"})
 
 
-@app.get('/admin-panel.html')
-async def admin_panel():
-    """Админ-панель (требует авторизации)"""
+@app.get('/admin-panel')
+async def admin_panel_clean():
+    """Админ-панель (чистый URL)"""
     try:
         return FileResponse("static/admin-panel.html", media_type="text/html")
     except Exception as e:
@@ -456,9 +495,29 @@ async def admin_panel():
         return JSONResponse(status_code=500, content={"error": "Error loading page"})
 
 
+@app.get('/admin-panel.html')
+async def admin_panel():
+    """Админ-панель (старый URL для совместимости)"""
+    try:
+        return FileResponse("static/admin-panel.html", media_type="text/html")
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return JSONResponse(status_code=500, content={"error": "Error loading page"})
+
+
+@app.get('/profile')
+async def profile_clean():
+    """Личный кабинет (чистый URL)"""
+    try:
+        return FileResponse("static/user-profile.html", media_type="text/html")
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return JSONResponse(status_code=500, content={"error": "Error loading page"})
+
+
 @app.get('/user-profile.html')
 async def user_profile():
-    """Личный кабинет (требует авторизации)"""
+    """Личный кабинет (старый URL для совместимости)"""
     try:
         return FileResponse("static/user-profile.html", media_type="text/html")
     except Exception as e:
@@ -476,8 +535,19 @@ async def dashboard():
         return JSONResponse(status_code=500, content={"error": "Error loading page"})
 
 
+@app.get('/crypto-detail')
+async def crypto_detail_clean():
+    """Детали криптовалюты (чистый URL)"""
+    try:
+        return FileResponse("static/crypto-detail.html", media_type="text/html")
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return JSONResponse(status_code=500, content={"error": "Error loading page"})
+
+
 @app.get('/crypto-detail.html')
 async def crypto_detail():
+    """Детали криптовалюты (старый URL для совместимости)"""
     try:
         return FileResponse("static/crypto-detail.html", media_type="text/html")
     except Exception as e:
@@ -589,6 +659,66 @@ async def get_all_cryptocurrencies():
         return JSONResponse(status_code=500, content={'success': False, 'error': str(e), 'data': []})
 
 
+@app.get('/api/cryptos/search')
+async def search_cryptocurrencies(q: str = Query(..., min_length=1, description="Поисковый запрос")):
+    """Поиск криптовалют напрямую через Bybit API"""
+    try:
+        query = q.upper().strip()
+        results = []
+
+        # 🎯 Используем Bybit API для поиска
+        bybit_results = await bybit_service.search_cryptocurrencies(query)
+
+        # Обогащаем результаты данными из конфига (логотипы, эмодзи только для популярных)
+        for bybit_crypto in bybit_results:
+            symbol = bybit_crypto['symbol']
+
+            # Ищем дополнительную информацию в популярных криптах
+            logo_info = None
+            for popular in POPULAR_CRYPTOS:
+                if popular['symbol'] == symbol:
+                    logo_info = popular
+                    break
+
+            # Если это популярная крипта, используем её данные
+            if logo_info:
+                results.append({
+                    'symbol': symbol,
+                    'name': logo_info.get('name', symbol.replace('USDT', '')),
+                    'display_name': logo_info.get('display_name', symbol.replace('USDT', '')),
+                    'logo': logo_info.get('logo', ''),
+                    'emoji': logo_info.get('emoji', '💰'),
+                    'last_price': bybit_crypto.get('last_price', 0),
+                    'change_24h': bybit_crypto.get('change_24h', 0)
+                })
+            else:
+                # Для остальных НЕ загружаем логотип - будет цветной кружок
+                symbol_clean = symbol.replace('USDT', '')
+                results.append({
+                    'symbol': symbol,
+                    'name': symbol_clean,
+                    'display_name': symbol_clean,
+                    'logo': '',  # Пустой - на фронте будет кружок
+                    'emoji': '💰',
+                    'last_price': bybit_crypto.get('last_price', 0),
+                    'change_24h': bybit_crypto.get('change_24h', 0)
+                })
+
+        return JSONResponse({
+            'success': True,
+            'data': results[:20],
+            'total': len(results),
+            'query': q
+        })
+
+    except Exception as e:
+        logger.error(f"Search error: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={'success': False, 'error': str(e), 'data': []}
+        )
+
+
 @app.get('/api/crypto/{symbol}')
 async def get_crypto_data(symbol: str):
     symbol = symbol.upper()
@@ -697,14 +827,20 @@ async def predict_price(symbol: str, request: Request):
             raise HTTPException(status_code=404, detail="Limits not found")
 
         daily_remaining = limits['predictions_limit_daily'] - limits['predictions_used_today']
+        monthly_remaining = limits['predictions_limit_monthly'] - limits['predictions_used_month']
 
-        if daily_remaining <= 0:
+        # Если месячный лимит исчерпан, дневной тоже становится 0
+        if monthly_remaining <= 0:
+            daily_remaining = 0
+
+        if daily_remaining <= 0 or monthly_remaining <= 0:
+            message = 'Вы исчерпали месячный лимит. Купите подписку для продолжения.' if monthly_remaining <= 0 else 'Вы исчерпали дневной лимит. Попробуйте завтра или купите подписку.'
             return JSONResponse(
                 status_code=429,
                 content={
                     'success': False,
-                    'error': 'Daily limit reached',
-                    'message': 'Вы исчерпали дневной лимит. Попробуйте завтра или купите подписку.',
+                    'error': 'Limit reached',
+                    'message': message,
                     'needs_premium': True
                 }
             )
@@ -797,7 +933,8 @@ async def get_klines(
             raise HTTPException(status_code=404, detail='Failed to get klines')
 
         formatted_klines = []
-        for kline in klines:
+        # Bybit возвращает данные от новых к старым, поэтому реверсим для правильного отображения
+        for kline in reversed(klines):
             formatted_klines.append({
                 'timestamp': int(kline[0]),
                 'open': float(kline[1]),

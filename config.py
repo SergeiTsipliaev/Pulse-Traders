@@ -44,14 +44,14 @@ APP_PORT = int(os.getenv('APP_PORT', 5000))
 APP_HOST = os.getenv('APP_HOST', '0.0.0.0')
 
 # ======================== BYBIT API ========================
-BYBIT_API_BASE = 'https://api-testnet.bybit.com'
+BYBIT_API_BASE = 'https://api.bybit.com'
 BYBIT_API_DEMO = 'https://api-demo.bybit.com'
 BYBIT_MAIN_NET = 'https://api.bybit.com'
 
 # ======================== CACHE ========================
 CACHE_TTL = 300  # 5 минут
 
-# ======================== POPULAR CRYPTOS ========================
+# ======================== POPULAR CRYPTOS (Top 6) ========================
 POPULAR_CRYPTOS = [
     {
         'symbol': 'BTCUSDT',
@@ -94,86 +94,6 @@ POPULAR_CRYPTOS = [
         'coingecko_id': 'dogecoin'
     },
     {
-        'symbol': 'AVAXUSDT',
-        'name': 'Avalanche',
-        'display_name': 'AVAX',
-        'emoji': '🔺',
-        'logo': 'https://coin-images.coingecko.com/coins/images/9072/large/avalanche-2.png',
-        'coingecko_id': 'avalanche-2'
-    },
-    {
-        'symbol': 'LINKUSDT',
-        'name': 'Chainlink',
-        'display_name': 'LINK',
-        'emoji': '🔗',
-        'logo': 'https://coin-images.coingecko.com/coins/images/877/large/chainlink-new-logo.png',
-        'coingecko_id': 'chainlink'
-    },
-    {
-        'symbol': 'MATICUSDT',
-        'name': 'Polygon',
-        'display_name': 'MATIC',
-        'emoji': '◆',
-        'logo': 'https://coin-images.coingecko.com/coins/images/4713/large/matic-token-square.png',
-        'coingecko_id': 'matic-network'
-    },
-    {
-        'symbol': 'LTCUSDT',
-        'name': 'Litecoin',
-        'display_name': 'LTC',
-        'emoji': 'Ł',
-        'logo': 'https://coin-images.coingecko.com/coins/images/2/large/litecoin.png',
-        'coingecko_id': 'litecoin'
-    },
-    {
-        'symbol': 'BCHUSDT',
-        'name': 'Bitcoin Cash',
-        'display_name': 'BCH',
-        'emoji': '₿',
-        'logo': 'https://coin-images.coingecko.com/coins/images/780/large/bitcoin-cash-circle.png',
-        'coingecko_id': 'bitcoin-cash'
-    },
-    {
-        'symbol': 'UNIUSDT',
-        'name': 'Uniswap',
-        'display_name': 'UNI',
-        'emoji': '🦄',
-        'logo': 'https://coin-images.coingecko.com/coins/images/12504/large/uniswap-uni.png',
-        'coingecko_id': 'uniswap'
-    },
-    {
-        'symbol': 'XLMUSDT',
-        'name': 'Stellar',
-        'display_name': 'XLM',
-        'emoji': '⭐',
-        'logo': 'https://coin-images.coingecko.com/coins/images/100/large/stellar.png',
-        'coingecko_id': 'stellar'
-    },
-    {
-        'symbol': 'XMUSDT',
-        'name': 'NEM',
-        'display_name': 'XEM',
-        'emoji': '※',
-        'logo': 'https://coin-images.coingecko.com/coins/images/15/large/nem.png',
-        'coingecko_id': 'nem'
-    },
-    {
-        'symbol': 'ETCUSDT',
-        'name': 'Ethereum Classic',
-        'display_name': 'ETC',
-        'emoji': '♦',
-        'logo': 'https://coin-images.coingecko.com/coins/images/453/large/ethereum-classic-icon.png',
-        'coingecko_id': 'ethereum-classic'
-    },
-    {
-        'symbol': 'TRXUSDT',
-        'name': 'TRON',
-        'display_name': 'TRX',
-        'emoji': '◉',
-        'logo': 'https://coin-images.coingecko.com/coins/images/1094/large/tron-logo.png',
-        'coingecko_id': 'tron'
-    },
-    {
         'symbol': 'ADAUSDT',
         'name': 'Cardano',
         'display_name': 'ADA',
@@ -183,25 +103,6 @@ POPULAR_CRYPTOS = [
     },
 ]
 
-# ======================== API LIMITS ========================
-API_REQUEST_TIMEOUT = 15
-MAX_SEARCH_RESULTS = 20
-
-# ======================== LOGGING ========================
-LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
-LOG_FILE = 'logs/app.log'
-
-os.makedirs('logs', exist_ok=True)
-
-# ======================== PAYMENT SETTINGS ========================
-PAYMENT_PROVIDER = os.getenv('PAYMENT_PROVIDER', 'stripe')
-STRIPE_API_KEY = os.getenv('STRIPE_API_KEY', '')
-STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
-
-# ======================== Security ========================
-MAX_LOGIN_ATTEMPTS = int(os.getenv('MAX_LOGIN_ATTEMPTS', 5))
-LOGIN_ATTEMPT_TIMEOUT = int(os.getenv('LOGIN_ATTEMPT_TIMEOUT', 300))
-
-DEFAULT_SUBSCRIPTION_TIER = 'starter'
-
-ux_mode: 'popup'
+# ======================== ADMIN PANEL ========================
+ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'admin')
+ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'changeme')

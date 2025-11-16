@@ -78,12 +78,13 @@ class Database:
                 await conn.execute("""
                     CREATE TABLE IF NOT EXISTS users (
                         id SERIAL PRIMARY KEY,
-                        telegram_id BIGINT UNIQUE NOT NULL,
+                        telegram_id BIGINT UNIQUE,
                         username VARCHAR(100),
                         first_name VARCHAR(100),
                         last_name VARCHAR(100),
-                        email VARCHAR(255),
+                        email VARCHAR(255) UNIQUE,
                         password_hash VARCHAR(255),
+                        google_id VARCHAR(255) UNIQUE,
                         is_admin BOOLEAN DEFAULT FALSE,
                         is_banned BOOLEAN DEFAULT FALSE,
                         is_active BOOLEAN DEFAULT TRUE,
@@ -195,7 +196,7 @@ class Database:
 
                     await conn.execute("""
                         INSERT INTO prediction_limits (user_id, predictions_limit_daily, predictions_limit_monthly)
-                        VALUES ($1, 5, 30)
+                        VALUES ($1, 5, 5)
                     """, user['id'])
 
                     return dict(user)
@@ -428,12 +429,17 @@ class Database:
                     SELECT COUNT(*) FROM user_subscriptions WHERE status = 'active'
                 """)
 
+                admin_users = await conn.fetchval("""
+                    SELECT COUNT(*) FROM users WHERE is_admin = TRUE
+                """)
+
                 total_predictions = await conn.fetchval("SELECT COUNT(*) FROM prediction_history")
 
                 return {
                     'total_users': total_users or 0,
                     'active_users': active_users or 0,
                     'premium_users': premium_users or 0,
+                    'admin_users': admin_users or 0,
                     'total_predictions': total_predictions or 0,
                     'total_revenue': 0.0
                 }

@@ -1,40 +1,36 @@
-let currentUserId = null;
+let authToken = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ✅ ИСПРАВЛЕНО: используем правильный ключ 'user_id' (не 'userId')
+    // Получаем токен из localStorage
     const token = localStorage.getItem('auth_token');
-    const userId = localStorage.getItem('user_id');
 
     console.log('✅ Token:', token ? 'есть' : 'нет');
-    console.log('✅ User ID:', userId);
 
-    // Получаем user_id
-    if (window.Telegram && window.Telegram.WebApp) {
-        const webApp = window.Telegram.WebApp;
-        const user = webApp.initDataUnsafe?.user;
-        if (user) {
-            currentUserId = user.id;
-        }
-    }
-
-    // Если из Telegram не получили, берем из localStorage
-    if (!currentUserId) {
-        currentUserId = userId;
-    }
-
-    if (!currentUserId) {
-        showAlert('❌ Ошибка: не удалось получить ID пользователя', 'error');
-        console.error('❌ No user ID found');
+    if (!token) {
+        showAlert('❌ Ошибка: токен авторизации не найден. Пожалуйста, войдите снова.', 'error');
+        console.error('❌ No auth token found');
+        setTimeout(() => {
+            window.location.href = '/login';
+        }, 2000);
         return;
     }
 
-    console.log('✅ Current User ID:', currentUserId);
+    authToken = token;
+    console.log('✅ Auth token loaded');
 
     // Загружаем данные
-    loadProfile();
-    loadLimits();
-    loadSubscription();
-    loadPredictionHistory();
+    Promise.all([
+        loadProfile(),
+        loadLimits(),
+        loadSubscription(),
+        loadPredictionHistory()
+    ]).finally(() => {
+        // Скрываем индикатор загрузки после загрузки всех данных
+        const loadingEl = document.getElementById('loading');
+        if (loadingEl) {
+            loadingEl.style.display = 'none';
+        }
+    });
 
     // Обработчики вкладок
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -73,11 +69,11 @@ function switchToSubscription() {
 
 async function loadProfile() {
     try {
-        console.log('📝 Loading profile for user:', currentUserId);
+        console.log('📝 Loading profile...');
 
         const response = await fetch('/api/user/profile', {
             headers: {
-                'x-user-id': currentUserId
+                'Authorization': `Bearer ${authToken}`
             }
         });
 
@@ -89,32 +85,69 @@ async function loadProfile() {
 
         if (data.success && data.data) {
             const userData = data.data.user;
+            const fullName = [userData.first_name, userData.last_name]
+                .filter(n => n && n !== 'null')
+                .join(' ') || 'Не указано';
+
+            const username = userData.username && userData.username !== 'null'
+                ? `@${userData.username}`
+                : '—';
+
+            const telegramId = userData.telegram_id && userData.telegram_id !== 'null'
+                ? userData.telegram_id
+                : '—';
+
+            const email = userData.email && userData.email !== 'null'
+                ? userData.email
+                : '—';
+
+            // Определяем тариф
+            const tariffName = data.data.subscription
+                ? (data.data.subscription.name || 'Premium')
+                : 'Бесплатный';
+
+            const tariffBadge = data.data.subscription
+                ? '💎 ' + tariffName
+                : '🆓 ' + tariffName;
+
+            // Telegram: показываем username если есть, иначе ID
+            const telegram = username !== '—' ? username : telegramId;
+
+            // Всего прогнозов (получаем из данных, если доступно)
+            const totalPredictions = userData.total_predictions || 0;
+
+            // Устанавливаем аватар в заголовок
+            const headerAvatar = document.getElementById('headerAvatar');
+            if (headerAvatar && userData.avatar_url && userData.avatar_url.trim() !== '') {
+                headerAvatar.innerHTML = `<img src="${userData.avatar_url}" alt="" style="width: 100%; height: 100%; object-fit: cover;">`;
+            }
+
             const profileHTML = `
                 <div class="info-item">
                     <div class="info-label">Имя</div>
-                    <div class="info-value">${userData.first_name || 'Не указано'} ${userData.last_name || ''}</div>
+                    <div class="info-value">${fullName}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Username</div>
-                    <div class="info-value">@${userData.username || 'unknown'}</div>
+                    <div class="info-label">Тариф</div>
+                    <div class="subscription-badge ${data.data.subscription ? 'badge-premium' : 'badge-free'}">
+                        ${tariffBadge}
+                    </div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Telegram ID</div>
-                    <div class="info-value">${userData.telegram_id}</div>
+                    <div class="info-label">Email</div>
+                    <div class="info-value">${email}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Присоединился</div>
                     <div class="info-value">${new Date(userData.created_at).toLocaleDateString('ru-RU')}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Последний визит</div>
-                    <div class="info-value">${new Date(userData.last_active).toLocaleString('ru-RU')}</div>
+                    <div class="info-label">Telegram</div>
+                    <div class="info-value">${telegram}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Статус</div>
-                    <div class="subscription-badge ${data.data.subscription ? 'badge-premium' : 'badge-free'}">
-                        ${data.data.subscription ? '💎 Premium' : '🆓 Бесплатный'}
-                    </div>
+                    <div class="info-label">Всего прогнозов</div>
+                    <div class="info-value">${totalPredictions}</div>
                 </div>
             `;
 
@@ -130,11 +163,11 @@ async function loadProfile() {
 
 async function loadLimits() {
     try {
-        console.log('📊 Loading limits for user:', currentUserId);
+        console.log('📊 Loading limits...');
 
         const response = await fetch('/api/user/limits', {
             headers: {
-                'x-user-id': currentUserId
+                'Authorization': `Bearer ${authToken}`
             }
         });
 
@@ -145,35 +178,39 @@ async function loadLimits() {
         if (data.success && data.data) {
             const limits = data.data;
 
-            const dailyPercent = (limits.predictions_used_today / limits.predictions_limit_daily) * 100;
-            const monthlyPercent = (limits.predictions_used_month / limits.predictions_limit_monthly) * 100;
+            const dailyPercent = (limits.daily.used / limits.daily.limit) * 100;
+            const monthlyPercent = (limits.monthly.used / limits.monthly.limit) * 100;
 
             const limitsHTML = `
                 <div class="limit-card">
                     <div class="limit-label">📅 Прогнозы в день</div>
-                    <div class="limit-value">${limits.predictions_limit_daily - limits.predictions_used_today}/${limits.predictions_limit_daily}</div>
+                    <div class="limit-value">${limits.daily.remaining}/${limits.daily.limit}</div>
                     <div class="limit-bar">
                         <div class="limit-bar-fill" style="width: ${dailyPercent}%"></div>
                     </div>
                 </div>
                 <div class="limit-card">
                     <div class="limit-label">📆 Прогнозы в месяц</div>
-                    <div class="limit-value">${limits.predictions_limit_monthly - limits.predictions_used_month}/${limits.predictions_limit_monthly}</div>
+                    <div class="limit-value">${limits.monthly.remaining}/${limits.monthly.limit}</div>
                     <div class="limit-bar">
                         <div class="limit-bar-fill" style="width: ${monthlyPercent}%"></div>
                     </div>
                 </div>
             `;
 
-            document.getElementById('limitsInfo').innerHTML = limitsHTML;
+            const limitsContainer = document.getElementById('limitsSection');
+            if (limitsContainer) {
+                limitsContainer.innerHTML = limitsHTML;
+            }
 
-            // Если исчерпаны лимиты, показываем сообщение
-            if ((limits.predictions_limit_daily - limits.predictions_used_today) <= 0) {
-                document.getElementById('dailyLimitAlert').innerHTML = `
-                    <p style="color: #ff6b6b; font-weight: 600;">⚠️ Вы исчерпали дневной лимит!</p>
-                    <p style="font-size: 13px; color: var(--text-secondary);">Купите подписку для получения дополнительных прогнозов.</p>
-                    <button class="button btn-primary" onclick="switchToSubscription()">💳 Выбрать подписку</button>
-                `;
+            // Если исчерпаны лимиты, показываем баннер
+            const upgradeBanner = document.getElementById('upgradeBanner');
+            if (upgradeBanner) {
+                if (limits.daily.remaining <= 0 || limits.monthly.remaining <= 0) {
+                    upgradeBanner.style.display = 'block';
+                } else {
+                    upgradeBanner.style.display = 'none';
+                }
             }
         } else {
             showAlert('❌ ' + (data.error || 'Ошибка загрузки лимитов'), 'error');
@@ -186,11 +223,11 @@ async function loadLimits() {
 
 async function loadSubscription() {
     try {
-        console.log('💳 Loading subscription for user:', currentUserId);
+        console.log('💳 Loading subscription...');
 
         const response = await fetch('/api/user/subscription', {
             headers: {
-                'x-user-id': currentUserId
+                'Authorization': `Bearer ${authToken}`
             }
         });
 
@@ -202,13 +239,27 @@ async function loadSubscription() {
             const subscription = data.data;
 
             if (subscription) {
+                const subName = subscription.name && subscription.name !== 'null'
+                    ? subscription.name
+                    : 'Активная подписка';
+
+                const subPrice = subscription.price && subscription.price !== 'null'
+                    ? `${subscription.price} USD/месяц`
+                    : '∞';
+
+                const predictions = subscription.daily_predictions && subscription.daily_predictions !== 'null'
+                    ? subscription.daily_predictions
+                    : (subscription.monthly_predictions && subscription.monthly_predictions !== 'null'
+                        ? subscription.monthly_predictions
+                        : '∞');
+
                 const subscriptionHTML = `
                     <div class="card-content">
                         <div class="subscription-info">
-                            <div class="subscription-name">💎 ${subscription.name || 'Активная подписка'}</div>
-                            <div class="subscription-price">${subscription.price || '∞'} USD/месяц</div>
+                            <div class="subscription-name">💎 ${subName}</div>
+                            <div class="subscription-price">${subPrice}</div>
                             <div style="margin-top: 12px; color: var(--text-secondary); font-size: 13px;">
-                                ✅ ${subscription.daily_predictions || subscription.monthly_predictions || '∞'} прогнозов
+                                ✅ ${predictions} прогнозов
                             </div>
                         </div>
                     </div>
@@ -221,7 +272,7 @@ async function loadSubscription() {
                             <div style="font-size: 24px; margin-bottom: 8px;">🆓</div>
                             <div style="font-weight: 600;">Бесплатный план</div>
                             <div style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;">
-                                5 прогнозов в день, 30 в месяц
+                                5 прогнозов в день, 5 в месяц
                             </div>
                         </div>
                     </div>
@@ -235,11 +286,11 @@ async function loadSubscription() {
 
 async function loadPredictionHistory() {
     try {
-        console.log('📈 Loading prediction history for user:', currentUserId);
+        console.log('📈 Loading prediction history...');
 
         const response = await fetch('/api/user/predictions/history?limit=20', {
             headers: {
-                'x-user-id': currentUserId
+                'Authorization': `Bearer ${authToken}`
             }
         });
 
@@ -253,21 +304,35 @@ async function loadPredictionHistory() {
                 return;
             }
 
-            const historyHTML = data.data.map(prediction => `
-                <div class="history-item">
-                    <div>
-                        <div class="history-symbol">${prediction.symbol}</div>
-                        <div class="history-meta">
-                            <span>📈 $${formatPrice(prediction.predicted_price)}</span>
-                            <span>🎯 ${prediction.confidence.toFixed(0)}% уверенность</span>
-                            <span>📅 ${new Date(prediction.timestamp).toLocaleString('ru-RU')}</span>
+            const historyHTML = data.data.map(prediction => {
+                const symbol = prediction.symbol && prediction.symbol !== 'null' ? prediction.symbol : 'N/A';
+                const price = prediction.predicted_price && prediction.predicted_price !== 'null'
+                    ? `$${formatPrice(prediction.predicted_price)}`
+                    : '—';
+                const confidence = prediction.confidence && prediction.confidence !== 'null'
+                    ? `${prediction.confidence.toFixed(0)}% уверенность`
+                    : '—';
+                const signal = prediction.signal && prediction.signal !== 'null' ? prediction.signal : 'UNKNOWN';
+                const timestamp = prediction.timestamp && prediction.timestamp !== 'null'
+                    ? new Date(prediction.timestamp).toLocaleString('ru-RU')
+                    : '—';
+
+                return `
+                    <div class="history-item">
+                        <div>
+                            <div class="history-symbol">${symbol}</div>
+                            <div class="history-meta">
+                                <span>📈 ${price}</span>
+                                <span>🎯 ${confidence}</span>
+                                <span>📅 ${timestamp}</span>
+                            </div>
                         </div>
+                        <span class="history-signal signal-${signal.toLowerCase()}">
+                            ${signal}
+                        </span>
                     </div>
-                    <span class="history-signal signal-${prediction.signal.toLowerCase()}">
-                        ${prediction.signal}
-                    </span>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             document.getElementById('historyList').innerHTML = historyHTML;
         }
@@ -301,4 +366,54 @@ function showAlert(message, type = 'success') {
     setTimeout(() => {
         alertEl.classList.remove('show');
     }, 4000);
+}
+
+async function uploadAvatar(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Проверка размера (макс 20MB)
+    const maxSize = 20 * 1024 * 1024; // 20MB в байтах
+    if (file.size > maxSize) {
+        showAlert('❌ Файл слишком большой! Максимальный размер: 20 МБ', 'error');
+        return;
+    }
+
+    // Проверка типа файла
+    if (!file.type.startsWith('image/')) {
+        showAlert('❌ Пожалуйста, выберите изображение', 'error');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+        showAlert('⏳ Загрузка фото...', 'warning');
+
+        const response = await fetch('/api/user/upload-avatar', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showAlert('✅ Фото профиля обновлено!', 'success');
+
+            // Обновляем аватар в заголовке
+            const headerAvatar = document.getElementById('headerAvatar');
+            if (headerAvatar && data.avatar_url) {
+                headerAvatar.innerHTML = `<img src="${data.avatar_url}?t=${Date.now()}" alt="" style="width: 100%; height: 100%; object-fit: cover;">`;
+            }
+        } else {
+            showAlert('❌ ' + (data.error || 'Ошибка загрузки фото'), 'error');
+        }
+    } catch (error) {
+        console.error('Upload error:', error);
+        showAlert('❌ Ошибка загрузки: ' + error.message, 'error');
+    }
 }

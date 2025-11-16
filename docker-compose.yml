@@ -14,7 +14,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U trader -d pulse_traders"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pulse_traders"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -37,15 +37,60 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       BOT_TOKEN: ${BOT_TOKEN}
-      WEB_APP_URL: http://localhost:5000
+      WEB_APP_URL: ${WEB_APP_URL}
       SECRET_KEY: ${SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS}
       ADMIN_IDS: ${ADMIN_IDS}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       PYTHONUNBUFFERED: 1
+    command: ["uvicorn", "api.web_app_api:app", "--host", "0.0.0.0", "--port", "5000", "--reload"]
     ports:
       - "5000:5000"
     volumes:
+      - ./api:/app/api
+      - ./static:/app/static
+      - ./models:/app/models
+      - ./services:/app/services
+      - ./bot:/app/bot
+      - ./config.py:/app/config.py
       - ./logs:/app/logs
-      - ./data:/app/data
+    networks:
+      - pulse-network
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pulse-traders-bot
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      BOT_TOKEN: ${BOT_TOKEN}
+      WEB_APP_URL: ${WEB_APP_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      ADMIN_IDS: ${ADMIN_IDS}
+      PYTHONUNBUFFERED: 1
+    command: ["python", "-m", "bot.main"]
+    volumes:
+      - ./bot:/app/bot
+      - ./models:/app/models
+      - ./config.py:/app/config.py
+      - ./logs:/app/logs
     networks:
       - pulse-network
 

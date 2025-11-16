@@ -424,7 +424,18 @@
     <div class="container">
         <!-- HEADER -->
         <div class="header">
-            <h1>👤 Мой профиль</h1>
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="position: relative;">
+                    <div id="headerAvatar" style="width: 48px; height: 48px; border-radius: 50%; background: rgba(255, 255, 255, 0.2); display: flex; align-items: center; justify-content: center; font-size: 24px; overflow: hidden; cursor: pointer;" onclick="document.getElementById('avatarInput').click()">
+                        👤
+                    </div>
+                    <div style="position: absolute; bottom: -2px; right: -2px; width: 18px; height: 18px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #667eea; cursor: pointer;" onclick="document.getElementById('avatarInput').click()">
+                        <span style="font-size: 10px;">📷</span>
+                    </div>
+                    <input type="file" id="avatarInput" accept="image/*" style="display: none;" onchange="uploadAvatar(event)">
+                </div>
+                <h1>Мой профиль</h1>
+            </div>
             <a href="/" class="back-link">← На главную</a>
         </div>
 
@@ -476,7 +487,7 @@
             <div class="card">
                 <div class="card-title" style="color: var(--warning);">💡 Как это работает?</div>
                 <ul style="font-size: 13px; line-height: 1.8; color: var(--text-secondary);">
-                    <li>✅ Бесплатно: 5 прогнозов в день, 30 в месяц</li>
+                    <li>✅ Бесплатно: 5 прогнозов в день, 5 в месяц</li>
                     <li>✅ Starter: 10 прогнозов в день, 100 в месяц</li>
                     <li>✅ Pro: 25 прогнозов в день, 300 в месяц</li>
                     <li>✅ Enterprise: неограниченные прогнозы</li>
