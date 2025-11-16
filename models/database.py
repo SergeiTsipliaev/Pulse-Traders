@@ -85,6 +85,7 @@ class Database:
                         email VARCHAR(255) UNIQUE,
                         password_hash VARCHAR(255),
                         google_id VARCHAR(255) UNIQUE,
+                        avatar_url VARCHAR(500),
                         is_admin BOOLEAN DEFAULT FALSE,
                         is_banned BOOLEAN DEFAULT FALSE,
                         is_active BOOLEAN DEFAULT TRUE,
